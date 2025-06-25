@@ -39,6 +39,9 @@ var (
 			fmt.Printf("fixed ：%+v\n", fixedMap)
 			fmt.Printf("temp : %+v\n", tempMap)
 
+			billData := transfer.CreateBillData(fixedMap, tempMap)
+			word.CreateBillDoc(&billData)
+
 			fixedPDList := transfer.FixedTransfer(fixedMap)
 			fmt.Printf("fixed page list : %+v \n", fixedPDList)
 			fmt.Printf("-------------------------------------")
@@ -78,6 +81,11 @@ func init() {
 	viper.SetDefault("output", "D:\\work_space\\parking\\output")
 	viper.SetDefault("name_pool", "C:\\Users\\Lenovo\\name_pool.log")
 	viper.SetDefault("file", "att.docx")
+	viper.SetDefault("temp_8_day", 194)
+	viper.SetDefault("temp_12_day", 247)
+	viper.SetDefault("fixed_pay", 4580)
+	viper.SetDefault("contract_start", "2025-01-01")
+	viper.SetDefault("contract_end", "2025-12-31")
 }
 
 func initConfig() {

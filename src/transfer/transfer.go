@@ -2,12 +2,12 @@ package transfer
 
 import (
 	"bufio"
-	"parking/src/read"
-	"parking/src/types"
 	"fmt"
 	"os"
+	"parking/src/types"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -42,7 +42,7 @@ func initNamePool() {
 	}
 }
 
-func FixedTransfer(fixed map[string][]read.FixedData) []types.PageData {
+func FixedTransfer(fixed map[string][]types.FixedData) []types.PageData {
 
 	initNamePool()
 
@@ -99,7 +99,7 @@ func FixedTransfer(fixed map[string][]read.FixedData) []types.PageData {
 	return pdl
 }
 
-func TempTransfer(temp map[string][]read.TempSumData) []types.PageData {
+func TempTransfer(temp map[string][]types.TempSumData) []types.PageData {
 	var pdl []types.PageData
 
 	for area, tl := range temp {
@@ -237,4 +237,71 @@ func splitToPage(area string, att8List, att12List, att4List []types.PDAttendance
 	}
 
 	return pdl
+}
+
+func CreateBillData(fixedMap map[string][]types.FixedData, tempMap map[string][]types.TempSumData) types.BillData {
+
+	contractStart := viper.GetString("contract_start")
+	contractEnd := viper.GetString("contract_end")
+	contractStartTime, err := time.ParseInLocation(time.DateOnly, contractStart, time.Local)
+	if err != nil {
+		panic(err)
+	}
+	contractEndTime, _ := time.ParseInLocation(time.DateOnly, contractEnd, time.Local)
+
+	var fixedDataMap = make(map[string]int)
+	var temp8DataMap = make(map[string]int)
+	var temp12DataMap = make(map[string]int)
+	var temp4DataMap = make(map[string]int)
+	for key, list := range fixedMap {
+		if len(list) > 0 {
+			fixedDataMap[key] = len(list)
+		}
+	}
+
+	for area, list := range tempMap {
+		for _, tsd := range list {
+			if tsd.Temp_8 > 0 {
+				if sum, found := temp8DataMap[area]; found {
+					temp8DataMap[area] = sum + tsd.Temp_8
+				} else {
+					temp8DataMap[area] = tsd.Temp_8
+				}
+			}
+
+			if tsd.Temp_12 > 0 {
+				if sum, found := temp12DataMap[area]; found {
+					temp12DataMap[area] = sum + tsd.Temp_12
+				} else {
+					temp12DataMap[area] = tsd.Temp_12
+				}
+			}
+
+			if tsd.Temp_4 > 0 {
+				if sum, found := temp4DataMap[area]; found {
+					temp4DataMap[area] = sum + tsd.Temp_4
+				} else {
+					temp4DataMap[area] = tsd.Temp_4
+				}
+			}
+		}
+	}
+
+	var billData = types.BillData{
+		Year:               viper.GetInt("year"),
+		Month:              viper.GetInt("month"),
+		ContractStartYear:  contractStartTime.Year(),
+		ContractStartMonth: int(contractStartTime.Month()),
+		ContractStartDay:   contractStartTime.Day(),
+		ContractEndYear:    contractEndTime.Year(),
+		ContractEndMonth:   int(contractEndTime.Month()),
+		ContractEndDay:     contractEndTime.Day(),
+		FixedBillData:      fixedDataMap,
+		TempBill8Data:      temp8DataMap,
+		TempBill12Data:     temp12DataMap,
+		TempBill4Data:      temp4DataMap,
+	}
+	fmt.Printf("bill : %+v\n", billData)
+
+	return billData
 }

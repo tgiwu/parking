@@ -2,6 +2,9 @@ corporation_name: 有限公司
 output: "D:\\work_space\\parking\\output"
 input: "D:\\work_space\\parking\\input\\input.xlsx"
 name_pool: "C:\\Users\\Lenovo\\name_pool.log"
+fixed_area: ["Area-1","Area-2","Area-3"]
+temp_area: ["Area-1L","Area-2L","Area-3L","Area-4L"]
+first_party: "有限公司"
 holiday_per_month: 4
 year: 2025
 month: 4

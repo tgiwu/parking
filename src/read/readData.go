@@ -2,7 +2,9 @@ package read
 
 import (
 	"fmt"
+	"parking/src/types"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,30 +21,14 @@ const COL_ATT_TEMP_4 = "4小时临勤"
 const COL_ATT_TEMP_8 = "8小时临勤"
 const COL_ATT_TEMP_12 = "12小时临勤"
 
-type FixedData struct {
-	No      int
-	Name    string
-	RestDay []int
-	Area    string
-}
-
-type TempSumData struct {
-	No      int
-	Date    int
-	Temp_4  int
-	Temp_8  int
-	Temp_12 int
-	Area    string
-}
-
-var fixedChan = make(chan FixedData)
-var tempChan = make(chan TempSumData)
+var fixedChan = make(chan types.FixedData)
+var tempChan = make(chan types.TempSumData)
 var finishChan = make(chan string)
-var fixedMap = make(map[string][]FixedData)
-var tempMap = make(map[string][]TempSumData)
+var fixedMap = make(map[string][]types.FixedData)
+var tempMap = make(map[string][]types.TempSumData)
 
 //读取固定岗及临勤统计
-func ReadData(path string) (map[string][]FixedData, map[string][]TempSumData, error) {
+func ReadData(path string) (map[string][]types.FixedData, map[string][]types.TempSumData, error) {
 	file, err := xlsx.OpenFile(viper.GetString("input"))
 
 	if err != nil {
@@ -54,12 +40,16 @@ func ReadData(path string) (map[string][]FixedData, map[string][]TempSumData, er
 	wg.Add(count)
 
 	go handleChan(&wg, count)
+	fixedAreas := viper.GetStringSlice("fixed_area")
+	tempAreas := viper.GetStringSlice("temp_area")
 
 	for _, sheet := range file.Sheets {
-		if sheet.Name == "大医院" || sheet.Name == "中医院" || sheet.Name == "慕田峪" {
+		if slices.Index(fixedAreas, sheet.Name) != -1{
 			go readFixed(sheet)
-		} else {
+		} else if slices.Index(tempAreas, sheet.Name) != -1 {
 			go readTemp(sheet)
+		} else {
+			fmt.Printf("---ignore sheet named %s \n", sheet.Name)
 		}
 	}
 
@@ -86,7 +76,7 @@ func readFixed(sheet *xlsx.Sheet) {
 			continue
 		}
 
-		fixed := FixedData{}
+		fixed := types.FixedData{}
 		visitRowFixed(row, &headerMap, &fixed)
 		if len(fixed.Name) != 0 {
 			fixed.Area = sheet.Name
@@ -97,7 +87,7 @@ func readFixed(sheet *xlsx.Sheet) {
 
 }
 
-func visitRowFixed(row *xlsx.Row, headerMap *map[int]string, fixed *FixedData) error {
+func visitRowFixed(row *xlsx.Row, headerMap *map[int]string, fixed *types.FixedData) error {
 	for i := range row.Sheet.MaxCol {
 		str, err := row.GetCell(i).FormattedValue()
 		if err != nil {
@@ -157,7 +147,7 @@ func readTemp(sheet *xlsx.Sheet) {
 			continue
 		}
 
-		temp := TempSumData{}
+		temp := types.TempSumData{}
 		visitRowTemp(row, &headerMap, &temp)
 		if temp.Date > 0 && temp.Date < 32 {
 			temp.Area = sheet.Name
@@ -166,7 +156,7 @@ func readTemp(sheet *xlsx.Sheet) {
 	}
 	finishChan <- "read finish " + sheet.Name
 }
-func visitRowTemp(row *xlsx.Row, headerMap *map[int]string, temp *TempSumData) error {
+func visitRowTemp(row *xlsx.Row, headerMap *map[int]string, temp *types.TempSumData) error {
 	for i := range row.Sheet.MaxCol {
 		str, err := row.GetCell(i).FormattedValue()
 		if err != nil {
@@ -243,22 +233,22 @@ func handleChan(wg *sync.WaitGroup, count int) {
 	}
 }
 
-func handleFixed(fixed FixedData) {
+func handleFixed(fixed types.FixedData) {
 	if list, found := fixedMap[fixed.Area]; found {
 		list = append(list, fixed)
 		fixedMap[fixed.Area] = list
 	} else {
-		list = []FixedData{fixed}
+		list = []types.FixedData{fixed}
 		fixedMap[fixed.Area] = list
 	}
 }
 
-func handleTemp(temp TempSumData) {
+func handleTemp(temp types.TempSumData) {
 	if list, found := tempMap[temp.Area]; found {
 		list = append(list, temp)
 		tempMap[temp.Area] = list
 	} else {
-		list = []TempSumData{temp}
+		list = []types.TempSumData{temp}
 		tempMap[temp.Area] = list
 	}
 }

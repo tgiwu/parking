@@ -1,9 +1,14 @@
 package word
 
 import (
+	"errors"
 	"fmt"
+	"math/rand"
 	"parking/src/types"
 	"path"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ZeroHawkeye/wordZero/pkg/document"
@@ -13,8 +18,8 @@ import (
 
 var TABLE_HEADER = []string{"序", "姓名", "出勤", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "签字"}
 
-const DOC_PAGE_TITLE = "DOC_TITLE"
-const DOC_PAGE_SUBTITLE = "DOC_SUBTITLE"
+const DOC_TABLE_PAGE_TITLE = "DOC_TABLE_PAGE_TITLE"
+const DOC_TABLE_PAGE_SUBTITLE = "DOC_TABLE_PAGE_SUBTITLE"
 const TABLE_HEADER_CHAR = "TABLE_HEADER_CHAR"
 const TABLE_HEADER_NUMBER = "TABLE_HEADER_NUMBER"
 const TABLE_CONTENT_NO = "TABLE_CONTENT_NO"
@@ -26,10 +31,19 @@ const TABLE_CONTENT_NORMAL_12 = "TABLE_CONTENT_NORMAL_12"
 const TABLE_CONTENT_SIGN = "TABLE_CONTENT_SIGN"
 const DOC_PAGE_SIGN = "DOC_PAGE_SIGN"
 
+const DOC_BILL_TITLE = "DOC_BILL_TITLE"
+const DOC_BILL_SUBTITLE = "DOC_BILL_SUBTITLE"
+const DOC_BILL_CONTENT = "DOC_BILL_CONTENT"
+const DOC_BILL_SITE_TITLE = "DOC_BILL_SITE_TITLE"
+const DOC_BILL_SIGN = "DOC_BILL_SIGN"
+
 const TABLE_COL_INDEX_NO = 0
 const TABLE_COL_INDEX_NAME = 1
 const TABLE_COL_INDEX_ATT_SUM = 2
 const TABLE_COL_INDEX_SIGN = 34
+
+//费用合计
+var billsum = 0
 
 // 编写单页
 func writeDocxSingle(doc *document.Document, pd *types.PageData) {
@@ -60,9 +74,6 @@ func CreateDocx(list []types.PageData) {
 
 	for _, pd := range list {
 		writeDocxSingle(doc, &pd)
-		// if i != len(list) - 1 {
-		//add page break
-		// }
 	}
 
 	doc.Save(path.Join(viper.GetString("output"), viper.GetString("file")))
@@ -75,8 +86,8 @@ func setUpStyle(doc *document.Document) {
 	quickAPI := style.NewQuickStyleAPI(styleManager)
 
 	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-		ID:   DOC_PAGE_TITLE,
-		Name: DOC_PAGE_TITLE,
+		ID:   DOC_TABLE_PAGE_TITLE,
+		Name: DOC_TABLE_PAGE_TITLE,
 		Type: style.StyleTypeParagraph,
 		ParagraphConfig: &style.QuickParagraphConfig{
 			Alignment:   "center",
@@ -93,8 +104,8 @@ func setUpStyle(doc *document.Document) {
 	})
 
 	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-		ID:   DOC_PAGE_SUBTITLE,
-		Name: DOC_PAGE_SUBTITLE,
+		ID:   DOC_TABLE_PAGE_SUBTITLE,
+		Name: DOC_TABLE_PAGE_SUBTITLE,
 		Type: style.StyleTypeParagraph,
 		ParagraphConfig: &style.QuickParagraphConfig{
 			Alignment:   "left",
@@ -300,14 +311,14 @@ func title(doc *document.Document, pd *types.PageData) {
 		t = "固定岗"
 	}
 	titlePara := doc.AddParagraph(fmt.Sprintf("停车场人员%d年度%d月%s出勤统计表", viper.GetInt("year"), viper.GetInt("month"), t))
-	titlePara.SetStyle(DOC_PAGE_TITLE)
+	titlePara.SetStyle(DOC_TABLE_PAGE_TITLE)
 }
 
 // 副标题和区域
 func subtitle(doc *document.Document, pd *types.PageData) {
 
-	subtitlePara := doc.AddParagraph(fmt.Sprintf("用工单位名称：%s                                   负责区域：%s", viper.GetString("corporation_name"), pd.Area))
-	subtitlePara.SetStyle(DOC_PAGE_SUBTITLE)
+	subtitlePara := doc.AddParagraph(fmt.Sprintf("用工单位名称：%s                                   负责区域：%s", viper.GetString("corporation_name"), formatAreaIfNeed(pd.Area)))
+	subtitlePara.SetStyle(DOC_TABLE_PAGE_SUBTITLE)
 }
 
 // 设置单元格宽度
@@ -484,7 +495,7 @@ func data(table *document.Table, pd *types.PageData) {
 // 签字区域
 func signerArea(doc *document.Document) {
 	subtitlePara := doc.AddParagraph("负责人签字：                      区域负责人签字：                   部门负责人签字：")
-	subtitlePara.SetStyle(DOC_PAGE_SUBTITLE)
+	subtitlePara.SetStyle(DOC_TABLE_PAGE_SUBTITLE)
 }
 
 // 计算目标月份天数
@@ -508,4 +519,293 @@ func calcLastDayInMonth(year int, month int) int {
 	day := time.Date(year, newMonth+1, -1, 0, 0, 0, 0, loc).Day()
 
 	return day
+}
+
+func CreateBillDoc(billData *types.BillData) {
+	doc := document.New()
+	setUpBillStyle(doc)
+
+	billTitle(doc, billData)
+	billDescription(doc, billData)
+
+	tempData(doc, billData)
+	fixedData(doc, billData)
+	sumText(doc)
+	signture(doc)
+
+	doc.Save(path.Join(viper.GetString("output"), "bill.docx"))
+}
+
+func setUpBillStyle(doc *document.Document) {
+	styleManager := doc.GetStyleManager()
+	quickAPI := style.NewQuickStyleAPI(styleManager)
+	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
+		ID:   DOC_BILL_TITLE,
+		Name: DOC_BILL_TITLE,
+		Type: style.StyleTypeParagraph,
+		ParagraphConfig: &style.QuickParagraphConfig{
+			Alignment:   "center",
+			SpaceBefore: 0, // 段前间距（缇）
+			SpaceAfter:  0, // 段后间距（缇）
+			LineSpacing: 0, // 行间距（缇）
+		},
+		RunConfig: &style.QuickRunConfig{
+			FontName:  "微软雅黑",
+			FontSize:  22,
+			FontColor: "000000",
+			Bold:      false,
+		},
+	})
+	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
+		ID:   DOC_BILL_SUBTITLE,
+		Name: DOC_BILL_SUBTITLE,
+		Type: style.StyleTypeParagraph,
+		ParagraphConfig: &style.QuickParagraphConfig{
+			Alignment:   "center",
+			SpaceBefore: 0, // 段前间距（缇）
+			SpaceAfter:  0, // 段后间距（缇）
+			LineSpacing: 0, // 行间距（缇）
+		},
+		RunConfig: &style.QuickRunConfig{
+			FontName:  "仿宋",
+			FontSize:  18,
+			FontColor: "000000",
+			Bold:      false,
+		},
+	})
+	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
+		ID:   DOC_BILL_CONTENT,
+		Name: DOC_BILL_CONTENT,
+		Type: style.StyleTypeParagraph,
+		ParagraphConfig: &style.QuickParagraphConfig{
+			Alignment:   "left",
+			SpaceBefore: 0, // 段前间距（缇）
+			SpaceAfter:  0, // 段后间距（缇）
+			LineSpacing: 0, // 行间距（缇）
+		},
+		RunConfig: &style.QuickRunConfig{
+			FontName:  "仿宋",
+			FontSize:  16,
+			FontColor: "000000",
+			Bold:      false,
+		},
+	})
+	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
+		ID:   DOC_BILL_SITE_TITLE,
+		Name: DOC_BILL_SITE_TITLE,
+		Type: style.StyleTypeParagraph,
+		ParagraphConfig: &style.QuickParagraphConfig{
+			Alignment:   "left",
+			SpaceBefore: 0, // 段前间距（缇）
+			SpaceAfter:  0, // 段后间距（缇）
+			LineSpacing: 0, // 行间距（缇）
+		},
+		RunConfig: &style.QuickRunConfig{
+			FontName:  "仿宋",
+			FontSize:  16,
+			FontColor: "000000",
+			Bold:      true,
+		},
+	})
+	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
+		ID:   DOC_BILL_SIGN,
+		Name: DOC_BILL_SIGN,
+		Type: style.StyleTypeParagraph,
+		ParagraphConfig: &style.QuickParagraphConfig{
+			Alignment:   "left",
+			SpaceBefore: 0, // 段前间距（缇）
+			SpaceAfter:  0, // 段后间距（缇）
+			LineSpacing: 0, // 行间距（缇）
+		},
+		RunConfig: &style.QuickRunConfig{
+			FontName:  "仿宋",
+			FontSize:  16,
+			FontColor: "000000",
+			Bold:      false,
+		},
+	})
+}
+
+func billTitle(doc *document.Document, billData *types.BillData) {
+	paraTitle := doc.AddParagraph("停车场服务项目费用结算单")
+	paraTitle.SetStyle(DOC_BILL_TITLE)
+	paraSubtitle := doc.AddParagraph(fmt.Sprintf("（%d年%d月）", billData.Year, billData.Month))
+	paraSubtitle.SetStyle(DOC_BILL_SUBTITLE)
+}
+
+func billDescription(doc *document.Document, billData *types.BillData) {
+	paraCorporation := doc.AddParagraph(viper.GetString("corporation_name") + ":")
+	paraCorporation.SetStyle(DOC_BILL_CONTENT)
+	lastDay := calcLastDayInMonth(billData.Year, billData.Month)
+	txt := fmt.Sprintf("    自%d年%d月%d日起，确认由贵公司为%s提供停车场服务工作，服务期限为%d.%d.%d-%d.%d.%d。贵公司已按合同要求完成%d年%d月各项工作，%d月份服务时间自%d月%d日至%d月%d日，共计%d天，费用明细如下：",
+		billData.ContractStartYear, billData.ContractStartMonth, billData.ContractStartDay,
+		viper.GetString("first_party"),
+		billData.ContractStartYear, billData.ContractStartMonth, billData.ContractStartDay,
+		billData.ContractEndYear, billData.ContractEndMonth, billData.ContractEndDay,
+		billData.Year, billData.Month, billData.Month, billData.Month, 1, billData.Month, lastDay, lastDay)
+	paraDescription := doc.AddParagraph(txt)
+	paraDescription.SetStyle(DOC_BILL_CONTENT) 
+}
+
+func tempData(doc *document.Document, billData *types.BillData) {
+	sTitle := fmt.Sprintf("    临勤岗：（8小时%d元/人/天；12小时%d元/人/天）", viper.GetInt("temp_8_day"), viper.GetInt("temp_12_day"))
+	paraTitle := doc.AddParagraph(sTitle)
+	paraTitle.SetStyle(DOC_BILL_SITE_TITLE)
+
+	paraList := []types.ParagraphSimple{}
+	tempAreas := viper.GetStringSlice("temp_area")
+
+	for _, area := range tempAreas {
+		temp4Count := 0
+		if v, found := billData.TempBill4Data[area]; found {
+			temp4Count = v
+		}
+
+		if v, found := billData.TempBill8Data[area]; found && (v > 0 || temp4Count > 0) {
+			count := v + temp4Count/2
+			if temp4Count%2 != 0 && rand.Int()%2 != 0 {
+				count++
+			}
+			if count > 0 {
+				sum := count * viper.GetInt("temp_8_day")
+				paraList = append(paraList, types.ParagraphSimple{
+					Text: fmt.Sprintf("    %s（8小时）：%d人*%d元/人/天=%d元;",
+						formatAreaIfNeed(area), count, viper.GetInt("temp_8_day"), sum),
+					Style: DOC_BILL_CONTENT,
+				})
+				billsum += sum
+			}
+
+		}
+
+		if v, found := billData.TempBill12Data[area]; found && v > 0 {
+			sum := v * viper.GetInt("temp_12_day")
+			paraList = append(paraList, types.ParagraphSimple{
+				Text: fmt.Sprintf("    %s（12小时）：%d人*%d元/人/天=%d元;",
+					formatAreaIfNeed(area), v, viper.GetInt("temp_12_day"), sum),
+				Style: DOC_BILL_CONTENT,
+			})
+			billsum += sum
+		}
+	}
+
+	if len(paraList) > 0 {
+		for _, line := range paraList {
+			para := doc.AddParagraph(line.Text)
+			para.SetStyle(line.Style)
+		}
+	}
+
+}
+
+func fixedData(doc *document.Document, billData *types.BillData) {
+	sTitle := fmt.Sprintf("    固定岗：（%d元/人/月）", viper.GetInt("fixed_pay"))
+	paraTitle := doc.AddParagraph(sTitle)
+	paraTitle.SetStyle(DOC_BILL_SITE_TITLE)
+
+	paraList := []types.ParagraphSimple{}
+	fixedAreas := viper.GetStringSlice("fixed_area")
+
+	for _, area := range fixedAreas {
+		if v, found := billData.FixedBillData[area]; found && v > 0 {
+			sum := v * viper.GetInt("fixed_pay")
+			paraList = append(paraList, types.ParagraphSimple{
+				Text:  fmt.Sprintf("    %s：%d元/人/月*%d人=%d元；", area, viper.GetInt("fixed_pay"), v, sum),
+				Style: DOC_BILL_CONTENT,
+			})
+			billsum += sum
+		}
+	}
+
+	if len(paraList) > 0 {
+		for _, line := range paraList {
+			para := doc.AddParagraph(line.Text)
+			para.SetStyle(line.Style)
+		}
+	}
+}
+
+func sumText(doc *document.Document) {
+
+	para := doc.AddParagraph(fmt.Sprintf("费用合计金额为：%d元（%s）", billsum, digitalToChar(billsum)))
+	para.SetStyle(DOC_BILL_CONTENT)
+}
+
+func signture(doc *document.Document) {
+	para1 := doc.AddParagraph(viper.GetString("first_party"))
+	para1.SetStyle(DOC_BILL_SIGN)
+	para1sign := doc.AddParagraph("（签字/盖章）")
+	para1sign.SetStyle(DOC_BILL_SIGN)
+
+	para2 := doc.AddParagraph(viper.GetString("corporation_name"))
+	para2.SetStyle(DOC_BILL_SIGN)
+	para2sign := doc.AddParagraph("（签字/盖章）")
+	para2sign.SetStyle(DOC_BILL_SIGN)
+}
+
+func digitalToChar(money int) string {
+	var sliceUnit = []string{"仟", "佰", "拾", "亿", "仟", "佰", "拾", "万", "仟", "佰", "拾", "元", "角", "分"}
+	var upperDigitUnit = map[string]string{
+		"0": "零",
+		"1": "壹",
+		"2": "贰",
+		"3": "叁",
+		"4": "肆",
+		"5": "伍",
+		"6": "陆",
+		"7": "柒",
+		"8": "捌",
+		"9": "玖",
+	}
+
+	strMoney := strconv.Itoa(money * 100)
+
+	if len(strMoney) > len(sliceUnit) {
+		panic(errors.New("too big"))
+	}
+
+	units := sliceUnit[len(sliceUnit)-len(strMoney):]
+	amount := make([]string, len(units))
+	for idx, num := range strMoney {
+		amount[idx] = fmt.Sprintf("%s%s", upperDigitUnit[string(num)], units[idx])
+	}
+
+	str := strings.Join(amount, "")
+	reg, _ := regexp.Compile(`零角零分$`)
+	str = reg.ReplaceAllString(str, "整")
+
+	reg, _ = regexp.Compile(`零角`)
+	str = reg.ReplaceAllString(str, "零")
+
+	reg, _ = regexp.Compile(`零[仟佰拾]`)
+	str = reg.ReplaceAllString(str, "零")
+
+	reg, _ = regexp.Compile(`零{2,}`)
+	str = reg.ReplaceAllString(str, "零")
+
+	reg, _ = regexp.Compile(`零亿`)
+	str = reg.ReplaceAllString(str, "亿")
+
+	reg, _ = regexp.Compile(`零万`)
+	str = reg.ReplaceAllString(str, "万")
+
+	reg, _ = regexp.Compile(`零元`)
+	str = reg.ReplaceAllString(str, "元")
+
+	reg, _ = regexp.Compile(`零*元`)
+	str = reg.ReplaceAllString(str, "元")
+
+	reg, _ = regexp.Compile(`亿零{0,3}万`)
+	str = reg.ReplaceAllString(str, "^元")
+
+	reg, _ = regexp.Compile(`零元`)
+	str = reg.ReplaceAllString(str, "零")
+
+	return str
+}
+
+//固定岗和临勤有重叠区域，为区别临勤岗名称后加L，写入文档时去掉
+func formatAreaIfNeed(area string) string {
+	s, _ := strings.CutSuffix(area, "L")
+	return s
 }
