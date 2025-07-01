@@ -56,7 +56,7 @@ func FixedTransfer(fixed map[string][]types.FixedData) []types.PageData {
 				pd = types.PageData{
 					Area:   key,
 					Title:  fmt.Sprintf("停车场人员%d年度%d月固定岗出勤统计表", viper.GetInt("year"), viper.GetInt("month")),
-					IsTemp: false,
+					PDType: types.PD_TYPE_SITE,
 				}
 			}
 
@@ -112,7 +112,7 @@ func TempTransfer(temp map[string][]types.TempSumData) []types.PageData {
 			if tsd.Temp_8 > 0 {
 				for i := 1; i <= tsd.Temp_8; i++ {
 					var pda types.PDAttendance
-					if len(att8List) <= i {
+					if len(att8List) < i {
 						pda = types.PDAttendance{Data: make(map[int]int)}
 						pda.Data[tsd.Date] = 8
 						pda.Id = nameIndex + 1
@@ -120,9 +120,9 @@ func TempTransfer(temp map[string][]types.TempSumData) []types.PageData {
 						nameIndex++
 						att8List = append(att8List, pda)
 					} else {
-						pda = att8List[i]
+						pda = att8List[i-1]
 						pda.Data[tsd.Date] = 8
-						att8List[i] = pda
+						att8List[i-1] = pda
 					}
 				}
 			}
@@ -130,7 +130,7 @@ func TempTransfer(temp map[string][]types.TempSumData) []types.PageData {
 			if tsd.Temp_12 > 0 {
 				for i := 1; i <= tsd.Temp_12; i++ {
 					var pda types.PDAttendance
-					if len(att12List) <= i {
+					if len(att12List) < i {
 						pda = types.PDAttendance{Data: make(map[int]int)}
 						pda.Data[tsd.Date] = 12
 						pda.Id = nameIndex + 1
@@ -138,9 +138,9 @@ func TempTransfer(temp map[string][]types.TempSumData) []types.PageData {
 						nameIndex++
 						att12List = append(att12List, pda)
 					} else {
-						pda = att12List[i]
+						pda = att12List[i-1]
 						pda.Data[tsd.Date] = 12
-						att12List[i] = pda
+						att12List[i-1] = pda
 					}
 				}
 			}
@@ -148,7 +148,7 @@ func TempTransfer(temp map[string][]types.TempSumData) []types.PageData {
 			if tsd.Temp_4 > 0 {
 				for i := 1; i <= tsd.Temp_4; i++ {
 					var pda types.PDAttendance
-					if len(att4List) <= i {
+					if len(att4List) < i {
 						pda = types.PDAttendance{Data: make(map[int]int)}
 						pda.Data[tsd.Date] = 4
 						pda.Id = nameIndex + 1
@@ -156,9 +156,9 @@ func TempTransfer(temp map[string][]types.TempSumData) []types.PageData {
 						nameIndex++
 						att4List = append(att4List, pda)
 					} else {
-						pda = att4List[i]
+						pda = att4List[i-1]
 						pda.Data[tsd.Date] = 4
-						att4List[i] = pda
+						att4List[i-1] = pda
 					}
 				}
 			}
@@ -170,70 +170,80 @@ func TempTransfer(temp map[string][]types.TempSumData) []types.PageData {
 }
 
 func splitToPage(area string, att8List, att12List, att4List []types.PDAttendance) []types.PageData {
-	if len(att8List) == 0 && len(att12List) == 0 {
+	if len(att8List) == 0 && len(att12List) == 0 && len(att4List) == 0 {
 		return []types.PageData{}
 	}
 
-	list := slices.Concat(att8List, att12List)
-
 	pdl := []types.PageData{}
-	entry := types.PageData{Attendances: []types.PDAttendance{}}
-	for _, item := range list {
-		entry.Attendances = append(entry.Attendances, item)
 
-		if len(entry.Attendances) == types.LINES_PER_PAGE {
+	//处理8小时和12小时
+	if len(att8List) != 0 || len(att12List) != 0 {
+
+		list := slices.Concat(att8List, att12List)
+
+		entry := types.PageData{Attendances: []types.PDAttendance{}}
+		for _, item := range list {
+			entry.Attendances = append(entry.Attendances, item)
+
+			if len(entry.Attendances) == types.LINES_PER_PAGE {
+				entry.Title = fmt.Sprintf("停车场人员%d年%d月临勤出勤统计表", viper.GetInt("year"), viper.GetInt("month"))
+				entry.PDType = types.PD_TYPE_TEMP
+				entry.Area = area
+				pdl = append(pdl, entry)
+				entry = types.PageData{Attendances: []types.PDAttendance{}}
+			}
+		}
+
+		//不满整页补充满
+		if len(entry.Attendances) != 0 {
 			entry.Title = fmt.Sprintf("停车场人员%d年%d月临勤出勤统计表", viper.GetInt("year"), viper.GetInt("month"))
-			entry.IsTemp = true
+			entry.PDType = types.PD_TYPE_TEMP
 			entry.Area = area
+			lastIndex := entry.Attendances[len(entry.Attendances)-1].Id
+			remain := types.LINES_PER_PAGE - len(entry.Attendances)
+
+			for remain > 0 {
+				lastIndex++
+				entry.Attendances = append(entry.Attendances, types.PDAttendance{Id: lastIndex})
+				remain--
+
+			}
 			pdl = append(pdl, entry)
-			entry = types.PageData{Attendances: []types.PDAttendance{}}
 		}
 	}
 
-	if len(entry.Attendances) != 0 {
-		entry.Title = fmt.Sprintf("停车场人员%d年%d月临勤出勤统计表", viper.GetInt("year"), viper.GetInt("month"))
-		entry.IsTemp = true
-		entry.Area = area
-		lastIndex := entry.Attendances[len(entry.Attendances)-1].Id
-		remain := types.LINES_PER_PAGE - len(entry.Attendances)
+	//处理4小时
+	if len(att4List) != 0 {
 
-		for remain > 0 {
-			lastIndex++
-			entry.Attendances = append(entry.Attendances, types.PDAttendance{Id: lastIndex})
-			remain--
+		entry := types.PageData{Attendances: []types.PDAttendance{}}
+		for _, item := range att4List {
+			entry.Attendances = append(entry.Attendances, item)
 
+			if len(entry.Attendances) == types.LINES_PER_PAGE {
+				entry.Title = fmt.Sprintf("停车场人员%d年%d月临勤出勤统计表", viper.GetInt("year"), viper.GetInt("month"))
+				entry.PDType = types.PD_TYPE_NIGHT
+				entry.Area = area
+				pdl = append(pdl, entry)
+				entry = types.PageData{Attendances: []types.PDAttendance{}}
+			}
 		}
-		pdl = append(pdl, entry)
-	}
 
-	entry = types.PageData{Attendances: []types.PDAttendance{}}
-	for _, item := range att4List {
-		entry.Attendances = append(entry.Attendances, item)
-
-		if len(entry.Attendances) == types.LINES_PER_PAGE {
+		if len(entry.Attendances) != 0 {
 			entry.Title = fmt.Sprintf("停车场人员%d年%d月临勤出勤统计表", viper.GetInt("year"), viper.GetInt("month"))
-			entry.IsTemp = true
+			entry.PDType = types.PD_TYPE_NIGHT
 			entry.Area = area
+			lastIndex := entry.Attendances[len(entry.Attendances)-1].Id
+			remain := types.LINES_PER_PAGE - len(entry.Attendances)
+
+			for remain > 0 {
+				lastIndex++
+				entry.Attendances = append(entry.Attendances, types.PDAttendance{Id: lastIndex})
+				remain--
+
+			}
+
 			pdl = append(pdl, entry)
-			entry = types.PageData{Attendances: []types.PDAttendance{}}
 		}
-	}
-
-	if len(entry.Attendances) != 0 {
-		entry.Title = fmt.Sprintf("停车场人员%d年%d月临勤出勤统计表", viper.GetInt("year"), viper.GetInt("month"))
-		entry.IsTemp = true
-		entry.Area = area
-		lastIndex := entry.Attendances[len(entry.Attendances)-1].Id
-		remain := types.LINES_PER_PAGE - len(entry.Attendances)
-
-		for remain > 0 {
-			lastIndex++
-			entry.Attendances = append(entry.Attendances, types.PDAttendance{Id: lastIndex})
-			remain--
-
-		}
-
-		pdl = append(pdl, entry)
 	}
 
 	return pdl

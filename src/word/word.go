@@ -42,7 +42,7 @@ const TABLE_COL_INDEX_NAME = 1
 const TABLE_COL_INDEX_ATT_SUM = 2
 const TABLE_COL_INDEX_SIGN = 34
 
-//费用合计
+// 费用合计
 var billsum = 0
 
 // 编写单页
@@ -305,7 +305,7 @@ func setUpStyle(doc *document.Document) {
 // 表格标题
 func title(doc *document.Document, pd *types.PageData) {
 	var t string
-	if pd.IsTemp {
+	if pd.PDType == types.PD_TYPE_NIGHT || pd.PDType == types.PD_TYPE_TEMP {
 		t = "临勤"
 	} else {
 		t = "固定岗"
@@ -409,29 +409,29 @@ func data(table *document.Table, pd *types.PageData) {
 			}
 			var textFormate document.TextFormat
 
-			switch {
-			case col == TABLE_COL_INDEX_NO:
+			switch col {
+			case TABLE_COL_INDEX_NO:
 				textFormate = document.TextFormat{
 					Bold:       false,
 					Italic:     false,
 					FontSize:   7,
 					FontFamily: "Calibri (西文正文)",
 				}
-			case col == TABLE_COL_INDEX_NAME:
+			case TABLE_COL_INDEX_NAME:
 				textFormate = document.TextFormat{
 					Bold:       false,
 					Italic:     false,
 					FontSize:   12,
 					FontFamily: "宋体 (中文正文)",
 				}
-			case col == TABLE_COL_INDEX_ATT_SUM:
+			case TABLE_COL_INDEX_ATT_SUM:
 				textFormate = document.TextFormat{
 					Bold:       false,
 					Italic:     false,
 					FontSize:   9,
 					FontFamily: "Calibri (西文正文)",
 				}
-			case col == TABLE_COL_INDEX_SIGN:
+			case TABLE_COL_INDEX_SIGN:
 				textFormate = document.TextFormat{
 					Bold:       false,
 					Italic:     false,
@@ -442,7 +442,7 @@ func data(table *document.Table, pd *types.PageData) {
 				textFormate = document.TextFormat{
 					Bold:       false,
 					Italic:     false,
-					FontSize:   10,
+					FontSize:   9,
 					FontFamily: "Arial",
 				}
 			}
@@ -461,13 +461,13 @@ func data(table *document.Table, pd *types.PageData) {
 				}
 				table.SetCellText(row+1, col, pda.Name)
 			case TABLE_COL_INDEX_ATT_SUM:
-				if pd.IsTemp {
+				if pd.PDType == types.PD_TYPE_NIGHT || pd.PDType == types.PD_TYPE_TEMP {
 					table.SetCellText(row+1, col, fmt.Sprint(len(pda.Data)))
 				} else {
-					table.SetCellText(row+1, col, fmt.Sprint(31-len(pda.Data)))
+					table.SetCellText(row+1, col, fmt.Sprint(calcLastDayInMonth(viper.GetInt("year"), viper.GetInt("month"))-len(pda.Data)))
 				}
 			default:
-				if pd.IsTemp {
+				if pd.PDType == types.PD_TYPE_NIGHT || pd.PDType == types.PD_TYPE_TEMP {
 					if v, found := pda.Data[col-2]; found {
 						table.SetCellText(row+1, col, fmt.Sprint(v))
 					} else {
@@ -475,7 +475,7 @@ func data(table *document.Table, pd *types.PageData) {
 					}
 				} else {
 					if v, found := pda.Data[col-2]; found {
-						if pda.Data[v] == 1 {
+						if v == 1 {
 							table.SetCellText(row+1, col, "")
 						} else {
 							table.SetCellText(row+1, col, "√")
@@ -644,7 +644,7 @@ func billDescription(doc *document.Document, billData *types.BillData) {
 		billData.ContractEndYear, billData.ContractEndMonth, billData.ContractEndDay,
 		billData.Year, billData.Month, billData.Month, billData.Month, 1, billData.Month, lastDay, lastDay)
 	paraDescription := doc.AddParagraph(txt)
-	paraDescription.SetStyle(DOC_BILL_CONTENT) 
+	paraDescription.SetStyle(DOC_BILL_CONTENT)
 }
 
 func tempData(doc *document.Document, billData *types.BillData) {
@@ -804,7 +804,7 @@ func digitalToChar(money int) string {
 	return str
 }
 
-//固定岗和临勤有重叠区域，为区别临勤岗名称后加L，写入文档时去掉
+// 固定岗和临勤有重叠区域，为区别临勤岗名称后加L，写入文档时去掉
 func formatAreaIfNeed(area string) string {
 	s, _ := strings.CutSuffix(area, "L")
 	return s
