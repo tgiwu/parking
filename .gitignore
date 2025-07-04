@@ -35,4 +35,4 @@ input
 output
 .vscode
 *.exe
-./main
+main
