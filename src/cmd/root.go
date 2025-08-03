@@ -45,7 +45,8 @@ var (
 			fixedPDList := transfer.FixedTransfer(fixedMap)
 			fmt.Printf("fixed page list : %+v \n", fixedPDList)
 			fmt.Printf("-------------------------------------")
-			tempPDList := transfer.TempTransfer(tempMap)
+			nameIndex :=0
+			tempPDList := transfer.TempTransfer(tempMap, nameIndex)
 			fmt.Printf("temp page list : %+v\n", tempPDList)
 			fmt.Printf("-------------------------------------")
 

@@ -442,7 +442,7 @@ func data(table *document.Table, pd *types.PageData) {
 				textFormate = document.TextFormat{
 					Bold:       false,
 					Italic:     false,
-					FontSize:   9,
+					FontSize:   8,
 					FontFamily: "Arial",
 				}
 			}
@@ -501,23 +501,26 @@ func signerArea(doc *document.Document) {
 // 计算目标月份天数
 func calcLastDayInMonth(year int, month int) int {
 
-	yearStr := fmt.Sprint(year)
-	monthStr := fmt.Sprint(month)
+	// yearStr := fmt.Sprint(year)
+	// monthStr := fmt.Sprint(month)
 
-	if month < 10 {
-		monthStr = "0" + monthStr
-	}
+	// if month < 10 {
+	// 	monthStr = "0" + monthStr
+	// }
 
-	timeLayout := "2025-01-01 15:00:00"
+	// timeLayout := "2025-01-01 15:00:00"
 
 	loc, _ := time.LoadLocation("Local")
 
-	theTime, _ := time.ParseInLocation(timeLayout, yearStr+"-"+monthStr+"-01 00:00:00", loc)
+	// theTime, _ := time.ParseInLocation(timeLayout, yearStr+"-"+monthStr+"-01 00:00:00", loc)
 
-	newMonth := theTime.Month()
-
-	day := time.Date(year, newMonth+1, -1, 0, 0, 0, 0, loc).Day()
-
+	// newMonth := theTime.Month()
+	date := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, loc).AddDate(0, 1, -1)
+	day := date.Day()
+	// fmt.Println("---------------------")
+	// fmt.Printf(" time %v \n", date)
+	// fmt.Printf(" year %d，month %d, days %d \n", year, month, day)
+	// fmt.Println("---------------------")
 	return day
 }
 

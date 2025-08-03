@@ -39,6 +39,7 @@ func initNamePool() {
 				namePool = append(namePool, n)
 			}
 		}
+
 	}
 }
 
@@ -99,48 +100,39 @@ func FixedTransfer(fixed map[string][]types.FixedData) []types.PageData {
 	return pdl
 }
 
-func TempTransfer(temp map[string][]types.TempSumData) []types.PageData {
+func TempTransfer(temp map[string][]types.TempSumData, nameIndex int) []types.PageData {
 	var pdl []types.PageData
 
 	for area, tl := range temp {
 		var att8List []types.PDAttendance
 		var att12List []types.PDAttendance
 		var att4List []types.PDAttendance
+		id := 0
+		/*
+			to avid id index error ,loop tsd for every single temp
+			a1  8:3, 12:0
+			a2  8:1, 12:3
+			a3  8:5, 12:0
 
-		nameIndex := 0
+			if we process temp_8 and temp_12 in single loop, id will be create by lines, it may lead id of temp_12 less than temp_8
+		*/
 		for _, tsd := range tl {
 			if tsd.Temp_8 > 0 {
+				fmt.Printf("current %d \n", tsd.Temp_8)
 				for i := 1; i <= tsd.Temp_8; i++ {
 					var pda types.PDAttendance
 					if len(att8List) < i {
 						pda = types.PDAttendance{Data: make(map[int]int)}
 						pda.Data[tsd.Date] = 8
-						pda.Id = nameIndex + 1
+						pda.Id = id + 1
 						pda.Name = namePool[nameIndex]
 						nameIndex++
+						id++
 						att8List = append(att8List, pda)
 					} else {
 						pda = att8List[i-1]
 						pda.Data[tsd.Date] = 8
 						att8List[i-1] = pda
-					}
-				}
-			}
-
-			if tsd.Temp_12 > 0 {
-				for i := 1; i <= tsd.Temp_12; i++ {
-					var pda types.PDAttendance
-					if len(att12List) < i {
-						pda = types.PDAttendance{Data: make(map[int]int)}
-						pda.Data[tsd.Date] = 12
-						pda.Id = nameIndex + 1
-						pda.Name = namePool[nameIndex]
-						nameIndex++
-						att12List = append(att12List, pda)
-					} else {
-						pda = att12List[i-1]
-						pda.Data[tsd.Date] = 12
-						att12List[i-1] = pda
 					}
 				}
 			}
@@ -151,9 +143,52 @@ func TempTransfer(temp map[string][]types.TempSumData) []types.PageData {
 					if len(att4List) < i {
 						pda = types.PDAttendance{Data: make(map[int]int)}
 						pda.Data[tsd.Date] = 4
-						pda.Id = nameIndex + 1
+						pda.Id = id + 1
 						pda.Name = namePool[nameIndex]
 						nameIndex++
+						id++
+						att4List = append(att4List, pda)
+					} else {
+						pda = att4List[i-1]
+						pda.Data[tsd.Date] = 4
+						att4List[i-1] = pda
+					}
+				}
+			}
+		}
+
+		for _, tsd := range tl {
+			if tsd.Temp_12 > 0 {
+				for i := 1; i <= tsd.Temp_12; i++ {
+					var pda types.PDAttendance
+					if len(att12List) < i {
+						pda = types.PDAttendance{Data: make(map[int]int)}
+						pda.Data[tsd.Date] = 12
+						pda.Id = id + 1
+						pda.Name = namePool[nameIndex]
+						nameIndex++
+						id++
+						att12List = append(att12List, pda)
+					} else {
+						pda = att12List[i-1]
+						pda.Data[tsd.Date] = 12
+						att12List[i-1] = pda
+					}
+				}
+			}
+		}
+
+		for _, tsd := range tl {
+			if tsd.Temp_4 > 0 {
+				for i := 1; i <= tsd.Temp_4; i++ {
+					var pda types.PDAttendance
+					if len(att4List) < i {
+						pda = types.PDAttendance{Data: make(map[int]int)}
+						pda.Data[tsd.Date] = 4
+						pda.Id = id + 1
+						pda.Name = namePool[nameIndex]
+						nameIndex++
+						id++
 						att4List = append(att4List, pda)
 					} else {
 						pda = att4List[i-1]
