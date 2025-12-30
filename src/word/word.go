@@ -66,6 +66,8 @@ func writeDocxSingle(doc *document.Document, pd *types.PageData) {
 
 // 文档创建方法
 func CreateDocx(list []types.PageData) {
+	document.SetGlobalLevel(document.LogLevelError)
+
 	doc := document.New()
 	setUpStyle(doc)
 	doc.SetPageSize(document.PageSizeA4)
@@ -120,167 +122,6 @@ func setUpStyle(doc *document.Document) {
 			Bold:      false,
 		},
 	})
-
-	// quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-	// 	ID:   TABLE_HEADER_CHAR,
-	// 	Name: TABLE_HEADER_CHAR,
-	// 	Type: style.StyleTypeParagraph,
-	// 	ParagraphConfig: &style.QuickParagraphConfig{
-	// 		Alignment:   "center",
-	// 		SpaceBefore: 0, // 段前间距（缇）
-	// 		SpaceAfter:  0, // 段后间距（缇）
-	// 		LineSpacing: 0, // 行间距（缇）
-	// 	},
-	// 	RunConfig: &style.QuickRunConfig{
-	// 		FontName:  "宋体(中文正文)",
-	// 		FontSize:  12,
-	// 		FontColor: "000000",
-	// 		Bold:      false,
-	// 	},
-	// })
-	// quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-	// 	ID:   TABLE_HEADER_NUMBER,
-	// 	Name: TABLE_HEADER_NUMBER,
-	// 	Type: style.StyleTypeParagraph,
-	// 	ParagraphConfig: &style.QuickParagraphConfig{
-	// 		Alignment:   "center",
-	// 		SpaceBefore: 0, // 段前间距（缇）
-	// 		SpaceAfter:  0, // 段后间距（缇）
-	// 		LineSpacing: 0, // 行间距（缇）
-	// 	},
-	// 	RunConfig: &style.QuickRunConfig{
-	// 		FontName:  "Calibri (西文正文)",
-	// 		FontSize:  7,
-	// 		FontColor: "000000",
-	// 		Bold:      false,
-	// 	},
-	// })
-
-	// quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-	// 	ID:   TABLE_CONTENT_NO,
-	// 	Name: TABLE_CONTENT_NO,
-	// 	Type: style.StyleTypeParagraph,
-	// 	ParagraphConfig: &style.QuickParagraphConfig{
-	// 		Alignment:   "center",
-	// 		SpaceBefore: 0, // 段前间距（缇）
-	// 		SpaceAfter:  0, // 段后间距（缇）
-	// 		LineSpacing: 0, // 行间距（缇）
-	// 	},
-	// 	RunConfig: &style.QuickRunConfig{
-	// 		Bold:     false,
-	// 		Italic:   false,
-	// 		FontSize: 7,
-	// 		FontName: "Calibri (西文正文)",
-	// 	},
-	// })
-
-	// quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-	// 	ID:   TABLE_CONTENT_NAME,
-	// 	Name: TABLE_CONTENT_NAME,
-	// 	Type: style.StyleTypeParagraph,
-	// 	ParagraphConfig: &style.QuickParagraphConfig{
-	// 		Alignment:   "center",
-	// 		SpaceBefore: 0, // 段前间距（缇）
-	// 		SpaceAfter:  0, // 段后间距（缇）
-	// 		LineSpacing: 0, // 行间距（缇）
-	// 	},
-	// 	RunConfig: &style.QuickRunConfig{
-	// 		Bold:     false,
-	// 		Italic:   false,
-	// 		FontSize: 12,
-	// 		FontName: "宋体 (中文正文)",
-	// 	},
-	// })
-
-	// quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-	// 	ID:   TABLE_CONTENT_ATT_SUM,
-	// 	Name: TABLE_CONTENT_ATT_SUM,
-	// 	Type: style.StyleTypeParagraph,
-	// 	ParagraphConfig: &style.QuickParagraphConfig{
-	// 		Alignment:   "center",
-	// 		SpaceBefore: 0, // 段前间距（缇）
-	// 		SpaceAfter:  0, // 段后间距（缇）
-	// 		LineSpacing: 0, // 行间距（缇）
-	// 	},
-	// 	RunConfig: &style.QuickRunConfig{
-	// 		Bold:     false,
-	// 		Italic:   false,
-	// 		FontSize: 9,
-	// 		FontName: "Calibri (西文正文)",
-	// 	},
-	// })
-
-	// quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-	// 	ID:   TABLE_CONTENT_NORMAL,
-	// 	Name: TABLE_CONTENT_NORMAL,
-	// 	Type: style.StyleTypeParagraph,
-	// 	ParagraphConfig: &style.QuickParagraphConfig{
-	// 		Alignment:   "center",
-	// 		SpaceBefore: 0, // 段前间距（缇）
-	// 		SpaceAfter:  0, // 段后间距（缇）
-	// 		LineSpacing: 0, // 行间距（缇）
-	// 	},
-	// 	RunConfig: &style.QuickRunConfig{
-	// 		Bold:     false,
-	// 		Italic:   false,
-	// 		FontSize: 10,
-	// 		FontName: "Arial",
-	// 	},
-	// })
-
-	// quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-	// 	ID:   TABLE_CONTENT_NORMAL_8,
-	// 	Name: TABLE_CONTENT_NORMAL_8,
-	// 	Type: style.StyleTypeNumbering,
-	// 	ParagraphConfig: &style.QuickParagraphConfig{
-	// 		Alignment:   "center",
-	// 		SpaceBefore: 0, // 段前间距（缇）
-	// 		SpaceAfter:  0, // 段后间距（缇）
-	// 		LineSpacing: 0, // 行间距（缇）
-	// 	},
-	// 	RunConfig: &style.QuickRunConfig{
-	// 		Bold:     false,
-	// 		Italic:   false,
-	// 		FontSize: 10,
-	// 		FontName: "Arial",
-	// 	},
-	// })
-
-	// quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-	// 	ID:   TABLE_CONTENT_NORMAL_12,
-	// 	Name: TABLE_CONTENT_NORMAL_12,
-	// 	Type: style.StyleTypeNumbering,
-	// 	ParagraphConfig: &style.QuickParagraphConfig{
-	// 		Alignment:   "center",
-	// 		SpaceBefore: 0, // 段前间距（缇）
-	// 		SpaceAfter:  0, // 段后间距（缇）
-	// 		LineSpacing: 0, // 行间距（缇）
-	// 	},
-	// 	RunConfig: &style.QuickRunConfig{
-	// 		Bold:     false,
-	// 		Italic:   false,
-	// 		FontSize: 8,
-	// 		FontName: "Arial",
-	// 	},
-	// })
-
-	// quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-	// 	ID:   TABLE_CONTENT_SIGN,
-	// 	Name: TABLE_CONTENT_SIGN,
-	// 	Type: style.StyleTypeParagraph,
-	// 	ParagraphConfig: &style.QuickParagraphConfig{
-	// 		Alignment:   "center",
-	// 		SpaceBefore: 0, // 段前间距（缇）
-	// 		SpaceAfter:  0, // 段后间距（缇）
-	// 		LineSpacing: 0, // 行间距（缇）
-	// 	},
-	// 	RunConfig: &style.QuickRunConfig{
-	// 		Bold:     false,
-	// 		Italic:   false,
-	// 		FontSize: 9,
-	// 		FontName: "宋体 (中文正文)",
-	// 	},
-	// })
 
 	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
 		ID:   DOC_PAGE_SIGN,
@@ -501,26 +342,10 @@ func signerArea(doc *document.Document) {
 // 计算目标月份天数
 func calcLastDayInMonth(year int, month int) int {
 
-	// yearStr := fmt.Sprint(year)
-	// monthStr := fmt.Sprint(month)
-
-	// if month < 10 {
-	// 	monthStr = "0" + monthStr
-	// }
-
-	// timeLayout := "2025-01-01 15:00:00"
-
 	loc, _ := time.LoadLocation("Local")
 
-	// theTime, _ := time.ParseInLocation(timeLayout, yearStr+"-"+monthStr+"-01 00:00:00", loc)
-
-	// newMonth := theTime.Month()
 	date := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, loc).AddDate(0, 1, -1)
 	day := date.Day()
-	// fmt.Println("---------------------")
-	// fmt.Printf(" time %v \n", date)
-	// fmt.Printf(" year %d，month %d, days %d \n", year, month, day)
-	// fmt.Println("---------------------")
 	return day
 }
 
@@ -651,6 +476,11 @@ func billDescription(doc *document.Document, billData *types.BillData) {
 }
 
 func tempData(doc *document.Document, billData *types.BillData) {
+	if len(billData.TempBill12Data) == 0 &&
+		len(billData.TempBill8Data) == 0 &&
+		len(billData.TempBill4Data) == 0 {
+		return
+	}
 	sTitle := fmt.Sprintf("    临勤岗：（8小时%d元/人/天；12小时%d元/人/天）", viper.GetInt("temp_8_day"), viper.GetInt("temp_12_day"))
 	paraTitle := doc.AddParagraph(sTitle)
 	paraTitle.SetStyle(DOC_BILL_SITE_TITLE)
