@@ -7,10 +7,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-//默认配置文件在用户目录
+
+// 默认配置文件在用户目录
 func ReadConfig() {
 
-	home, err:= os.UserHomeDir()
+	home, err := os.UserHomeDir()
 
 	cobra.CheckErr(err)
 
@@ -26,7 +27,6 @@ func ReadConfig() {
 			fmt.Printf("read config file err, %v \n", err)
 		}
 	}
-
 	// configName := "config"
 	// switch runtime.GOOS {
 	// case "windows":

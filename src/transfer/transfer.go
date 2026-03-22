@@ -6,6 +6,7 @@ import (
 	"os"
 	"parking/src/types"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -284,7 +285,7 @@ func splitToPage(area string, att8List, att12List, att4List []types.PDAttendance
 	return pdl
 }
 
-func CreateBillData(fixedMap map[string][]types.FixedData, tempMap map[string][]types.TempSumData) types.BillData {
+func CreateBillData(fixedMap map[string][]types.FixedData, tempMap map[string][]types.TempSumData) map[int]types.BillData {
 
 	contractStart := viper.GetString("contract_start")
 	contractEnd := viper.GetString("contract_end")
@@ -294,59 +295,75 @@ func CreateBillData(fixedMap map[string][]types.FixedData, tempMap map[string][]
 	}
 	contractEndTime, _ := time.ParseInLocation(time.DateOnly, contractEnd, time.Local)
 
-	var fixedDataMap = make(map[string]int)
-	var temp8DataMap = make(map[string]int)
-	var temp12DataMap = make(map[string]int)
-	var temp4DataMap = make(map[string]int)
+	billTypeDataMap := make(map[int]types.BillData, 0)
+
+	billTypeMap := viper.GetStringMapString("sheet_type_map")
+
 	for key, list := range fixedMap {
-		if len(list) > 0 {
-			fixedDataMap[key] = len(list)
+
+		//skip illegal type;
+		if i, found := billTypeMap[key]; found || len(list) > 0 {
+			t, err := strconv.Atoi(i)
+			if err != nil {
+				fmt.Printf("illegal type %v; sheet %s, con not transfer to int \n", i, key)
+				continue
+			}
+
+			if _, found := billTypeDataMap[t]; !found {
+				billTypeDataMap[t] = types.BillData{BillDataType: t, Year: viper.GetInt("year"),
+					Month:              viper.GetInt("month"),
+					ContractStartYear:  contractStartTime.Year(),
+					ContractStartMonth: int(contractStartTime.Month()),
+					ContractStartDay:   contractStartTime.Day(),
+					ContractEndYear:    contractEndTime.Year(),
+					ContractEndMonth:   int(contractEndTime.Month()),
+					ContractEndDay:     contractEndTime.Day(),
+					FixedBillData:      make(map[string]int),
+					TempBill8Data:      make(map[string]int),
+					TempBill12Data:     make(map[string]int),
+					TempBill4Data:      make(map[string]int)}
+			}
+
+			billTypeDataMap[t].FixedBillData[key] = len(list)
 		}
 	}
 
 	for area, list := range tempMap {
+		var billData types.BillData
+		if i, found := billTypeMap[area]; found {
+			t, err := strconv.Atoi(i)
+			if err != nil {
+				fmt.Printf("illegal type %v; sheet %s, con not transfer to int \n", i, area)
+				continue
+			}
+
+			if _, found := billTypeDataMap[t]; !found {
+				billTypeDataMap[t] = types.BillData{BillDataType: t, Year: viper.GetInt("year"),
+					Month:              viper.GetInt("month"),
+					ContractStartYear:  contractStartTime.Year(),
+					ContractStartMonth: int(contractStartTime.Month()),
+					ContractStartDay:   contractStartTime.Day(),
+					ContractEndYear:    contractEndTime.Year(),
+					ContractEndMonth:   int(contractEndTime.Month()),
+					ContractEndDay:     contractEndTime.Day(),
+					FixedBillData:      make(map[string]int),
+					TempBill8Data:      make(map[string]int),
+					TempBill12Data:     make(map[string]int),
+					TempBill4Data:      make(map[string]int)}
+			}
+			billData = billTypeDataMap[t]
+		} else {
+			fmt.Printf("warning can not find type for sheet %s !\n", area)
+			continue
+		}
+
 		for _, tsd := range list {
-			if tsd.Temp_8 > 0 {
-				if sum, found := temp8DataMap[area]; found {
-					temp8DataMap[area] = sum + tsd.Temp_8
-				} else {
-					temp8DataMap[area] = tsd.Temp_8
-				}
-			}
-
-			if tsd.Temp_12 > 0 {
-				if sum, found := temp12DataMap[area]; found {
-					temp12DataMap[area] = sum + tsd.Temp_12
-				} else {
-					temp12DataMap[area] = tsd.Temp_12
-				}
-			}
-
-			if tsd.Temp_4 > 0 {
-				if sum, found := temp4DataMap[area]; found {
-					temp4DataMap[area] = sum + tsd.Temp_4
-				} else {
-					temp4DataMap[area] = tsd.Temp_4
-				}
-			}
+			billData.TempBill8Data[area] += tsd.Temp_8
+			billData.TempBill12Data[area] += tsd.Temp_12
+			billData.TempBill4Data[area] += tsd.Temp_4
 		}
 	}
+	fmt.Printf("bill : %+v\n", billTypeDataMap)
 
-	var billData = types.BillData{
-		Year:               viper.GetInt("year"),
-		Month:              viper.GetInt("month"),
-		ContractStartYear:  contractStartTime.Year(),
-		ContractStartMonth: int(contractStartTime.Month()),
-		ContractStartDay:   contractStartTime.Day(),
-		ContractEndYear:    contractEndTime.Year(),
-		ContractEndMonth:   int(contractEndTime.Month()),
-		ContractEndDay:     contractEndTime.Day(),
-		FixedBillData:      fixedDataMap,
-		TempBill8Data:      temp8DataMap,
-		TempBill12Data:     temp12DataMap,
-		TempBill4Data:      temp4DataMap,
-	}
-	fmt.Printf("bill : %+v\n", billData)
-
-	return billData
+	return billTypeDataMap
 }

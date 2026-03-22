@@ -39,13 +39,14 @@ var (
 			fmt.Printf("fixed ：%+v\n", fixedMap)
 			fmt.Printf("temp : %+v\n", tempMap)
 
-			billData := transfer.CreateBillData(fixedMap, tempMap)
-			word.CreateBillDoc(&billData)
+			billDataMap := transfer.CreateBillData(fixedMap, tempMap)
+
+			word.CreateBillDocMulti(&billDataMap)
 
 			fixedPDList := transfer.FixedTransfer(fixedMap)
 			fmt.Printf("fixed page list : %+v \n", fixedPDList)
 			fmt.Printf("-------------------------------------")
-			nameIndex :=0
+			nameIndex := 0
 			tempPDList := transfer.TempTransfer(tempMap, nameIndex)
 			fmt.Printf("temp page list : %+v\n", tempPDList)
 			fmt.Printf("-------------------------------------")
@@ -85,8 +86,11 @@ func init() {
 	viper.SetDefault("temp_8_day", 194)
 	viper.SetDefault("temp_12_day", 247)
 	viper.SetDefault("fixed_pay", 4580)
-	viper.SetDefault("contract_start", "2025-01-01")
-	viper.SetDefault("contract_end", "2025-12-31")
+	viper.SetDefault("contract_start", "2026-03-01")
+	viper.SetDefault("contract_end", "2026-12-31")
+	viper.SetDefault("sheet_type_map", map[string]string{"中医院": "0", "大医院": "0", "中医院L": "0", "大医院L": "0",
+		"慕田峪": "1", "夜航L": "1", "青龙峡L": "1", "慕田峪L": "1", "雁栖湖L": "1"})
+	viper.SetDefault("type_strings", []string{"(医疗类)", "(景区类)"})
 }
 
 func initConfig() {

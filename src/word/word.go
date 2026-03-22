@@ -349,6 +349,12 @@ func calcLastDayInMonth(year int, month int) int {
 	return day
 }
 
+func CreateBillDocMulti(billDataMap *map[int]types.BillData) {
+	for _, data := range *billDataMap {
+		CreateBillDoc(&data)
+	}
+}
+
 func CreateBillDoc(billData *types.BillData) {
 	doc := document.New()
 	setUpBillStyle(doc)
@@ -361,7 +367,15 @@ func CreateBillDoc(billData *types.BillData) {
 	sumText(doc)
 	signture(doc)
 
-	doc.Save(path.Join(viper.GetString("output"), "bill.docx"))
+	var billTypeStr string
+	typesString := viper.GetStringSlice("type_strings")
+	if billData.BillDataType > len(typesString) {
+		billTypeStr = ""
+	} else {
+		billTypeStr = typesString[billData.BillDataType]
+	}
+
+	doc.Save(path.Join(viper.GetString("output"), fmt.Sprintf("bill%s.docx", billTypeStr)))
 }
 
 func setUpBillStyle(doc *document.Document) {
@@ -455,7 +469,14 @@ func setUpBillStyle(doc *document.Document) {
 }
 
 func billTitle(doc *document.Document, billData *types.BillData) {
-	paraTitle := doc.AddParagraph("停车场服务项目费用结算单")
+	var billTypeStr string
+	typesString := viper.GetStringSlice("type_strings")
+	if billData.BillDataType > len(typesString) {
+		billTypeStr = ""
+	} else {
+		billTypeStr = typesString[billData.BillDataType]
+	}
+	paraTitle := doc.AddParagraph(fmt.Sprintf("停车场%s服务项目费用结算单", billTypeStr))
 	paraTitle.SetStyle(DOC_BILL_TITLE)
 	paraSubtitle := doc.AddParagraph(fmt.Sprintf("（%d年%d月）", billData.Year, billData.Month))
 	paraSubtitle.SetStyle(DOC_BILL_SUBTITLE)

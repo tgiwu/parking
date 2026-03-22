@@ -16,6 +16,9 @@ const PD_TYPE_SITE = 0
 const PD_TYPE_TEMP = 1
 const PD_TYPE_NIGHT = 2
 
+const TYPE_BILL_MEDICAL = 0
+const TYPE_BILL_SCENIC = 1
+
 const LINES_PER_PAGE = 27
 
 type PageData struct {
@@ -48,6 +51,7 @@ type TempSumData struct {
 }
 
 type BillData struct {
+	BillDataType int //0:medical; 1 scenic
 	Year  int
 	Month int
 
