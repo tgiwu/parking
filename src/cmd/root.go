@@ -44,15 +44,15 @@ var (
 			word.CreateBillDocMulti(&billDataMap)
 
 			fixedPDList := transfer.FixedTransfer(fixedMap)
-			fmt.Printf("fixed page list : %+v \n", fixedPDList)
+			// fmt.Printf("fixed page list : %+v \n", fixedPDList)
 			fmt.Printf("-------------------------------------")
 			nameIndex := 0
 			tempPDList := transfer.TempTransfer(tempMap, nameIndex)
-			fmt.Printf("temp page list : %+v\n", tempPDList)
+			// fmt.Printf("temp page list : %+v\n", tempPDList)
 			fmt.Printf("-------------------------------------")
 
 			list := slices.Concat(fixedPDList, tempPDList)
-			fmt.Printf("list : %+v", list)
+			// fmt.Printf("list : %+v", list)
 			word.CreateDocx(list)
 
 		},
@@ -91,6 +91,8 @@ func init() {
 	viper.SetDefault("sheet_type_map", map[string]string{"中医院": "0", "大医院": "0", "中医院L": "0", "大医院L": "0",
 		"慕田峪": "1", "夜航L": "1", "青龙峡L": "1", "慕田峪L": "1", "雁栖湖L": "1"})
 	viper.SetDefault("type_strings", []string{"(医疗类)", "(景区类)"})
+	viper.SetDefault("corp_medical", "有限公司")
+	viper.SetDefault("corp_scenic", "有限公司")
 }
 
 func initConfig() {

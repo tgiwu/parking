@@ -119,7 +119,6 @@ func TempTransfer(temp map[string][]types.TempSumData, nameIndex int) []types.Pa
 		*/
 		for _, tsd := range tl {
 			if tsd.Temp_8 > 0 {
-				fmt.Printf("current %d \n", tsd.Temp_8)
 				for i := 1; i <= tsd.Temp_8; i++ {
 					var pda types.PDAttendance
 					if len(att8List) < i {

@@ -43,7 +43,7 @@ const TABLE_COL_INDEX_ATT_SUM = 2
 const TABLE_COL_INDEX_SIGN = 34
 
 // 费用合计
-var billsum = 0
+// var billsum = 0
 
 // 编写单页
 func writeDocxSingle(doc *document.Document, pd *types.PageData) {
@@ -364,8 +364,8 @@ func CreateBillDoc(billData *types.BillData) {
 
 	tempData(doc, billData)
 	fixedData(doc, billData)
-	sumText(doc)
-	signture(doc)
+	sumText(doc, billData)
+	signture(doc, billData)
 
 	var billTypeStr string
 	typesString := viper.GetStringSlice("type_strings")
@@ -527,7 +527,7 @@ func tempData(doc *document.Document, billData *types.BillData) {
 						formatAreaIfNeed(area), count, viper.GetInt("temp_8_day"), sum),
 					Style: DOC_BILL_CONTENT,
 				})
-				billsum += sum
+				billData.BillSum += sum
 			}
 
 		}
@@ -539,7 +539,7 @@ func tempData(doc *document.Document, billData *types.BillData) {
 					formatAreaIfNeed(area), v, viper.GetInt("temp_12_day"), sum),
 				Style: DOC_BILL_CONTENT,
 			})
-			billsum += sum
+			billData.BillSum += sum
 		}
 	}
 
@@ -567,7 +567,7 @@ func fixedData(doc *document.Document, billData *types.BillData) {
 				Text:  fmt.Sprintf("    %s：%d元/人/月*%d人=%d元；", area, viper.GetInt("fixed_pay"), v, sum),
 				Style: DOC_BILL_CONTENT,
 			})
-			billsum += sum
+			billData.BillSum += sum
 		}
 	}
 
@@ -579,19 +579,28 @@ func fixedData(doc *document.Document, billData *types.BillData) {
 	}
 }
 
-func sumText(doc *document.Document) {
+func sumText(doc *document.Document, billData *types.BillData) {
 
-	para := doc.AddParagraph(fmt.Sprintf("费用合计金额为：%d元（%s）", billsum, digitalToChar(billsum)))
+	para := doc.AddParagraph(fmt.Sprintf("费用合计金额为：%d元（%s）", billData.BillSum, digitalToChar(billData.BillSum)))
 	para.SetStyle(DOC_BILL_CONTENT)
 }
 
-func signture(doc *document.Document) {
+func signture(doc *document.Document, billData *types.BillData) {
 	para1 := doc.AddParagraph(viper.GetString("first_party"))
 	para1.SetStyle(DOC_BILL_SIGN)
 	para1sign := doc.AddParagraph("（签字/盖章）")
 	para1sign.SetStyle(DOC_BILL_SIGN)
 
-	para2 := doc.AddParagraph(viper.GetString("corporation_name"))
+	corpName := ""
+	switch billData.BillDataType {
+	case types.TYPE_BILL_SCENIC:
+		corpName = viper.GetString("corp_scenic")
+	case types.TYPE_BILL_MEDICAL:
+		corpName = viper.GetString("corp_medical")
+	default:
+	}
+
+	para2 := doc.AddParagraph(corpName)
 	para2.SetStyle(DOC_BILL_SIGN)
 	para2sign := doc.AddParagraph("（签字/盖章）")
 	para2sign.SetStyle(DOC_BILL_SIGN)

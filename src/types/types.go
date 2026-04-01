@@ -52,21 +52,23 @@ type TempSumData struct {
 
 type BillData struct {
 	BillDataType int //0:medical; 1 scenic
-	Year  int
-	Month int
+	Year         int //bill year
+	Month        int //bill month
 
-	ContractStartYear  int
-	ContractStartMonth int
-	ContractStartDay   int
+	ContractStartYear  int //contract start year
+	ContractStartMonth int //contract start month
+	ContractStartDay   int //contract start day
 
-	ContractEndYear  int
-	ContractEndMonth int
-	ContractEndDay   int
+	ContractEndYear  int //contract end year
+	ContractEndMonth int //contract end month
+	ContractEndDay   int //contract end day
 
-	TempBill8Data  map[string]int
-	TempBill12Data map[string]int
-	TempBill4Data  map[string]int
-	FixedBillData  map[string]int
+	TempBill8Data  map[string]int //temp 8 map area to sum
+	TempBill12Data map[string]int //temp 12 map area to sum
+	TempBill4Data  map[string]int //temp 4 map area to sum
+	FixedBillData  map[string]int //fixed map area to sum
+
+	BillSum int //bill cash
 }
 
 type ParagraphSimple struct {
