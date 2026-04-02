@@ -483,7 +483,16 @@ func billTitle(doc *document.Document, billData *types.BillData) {
 }
 
 func billDescription(doc *document.Document, billData *types.BillData) {
-	paraCorporation := doc.AddParagraph(viper.GetString("corporation_name") + ":")
+	foreword := ""
+	switch billData.BillDataType {
+	case types.TYPE_BILL_MEDICAL:
+		foreword = viper.GetString("corp_medical")
+	case types.TYPE_BILL_SCENIC:
+		foreword = viper.GetString("corp_scenic")
+	default:
+		foreword = viper.GetString("corporation_name")
+	}
+	paraCorporation := doc.AddParagraph(foreword + ":")
 	paraCorporation.SetStyle(DOC_BILL_CONTENT)
 	lastDay := calcLastDayInMonth(billData.Year, billData.Month)
 	txt := fmt.Sprintf("    自%d年%d月%d日起，确认由贵公司为%s提供停车场服务工作，服务期限为%d.%d.%d-%d.%d.%d。贵公司已按合同要求完成%d年%d月各项工作，%d月份服务时间自%d月%d日至%d月%d日，共计%d天，费用明细如下：",
@@ -591,16 +600,17 @@ func signture(doc *document.Document, billData *types.BillData) {
 	para1sign := doc.AddParagraph("（签字/盖章）")
 	para1sign.SetStyle(DOC_BILL_SIGN)
 
-	corpName := ""
+	secondParty := ""
 	switch billData.BillDataType {
 	case types.TYPE_BILL_SCENIC:
-		corpName = viper.GetString("corp_scenic")
+		secondParty = viper.GetString("corp_scenic")
 	case types.TYPE_BILL_MEDICAL:
-		corpName = viper.GetString("corp_medical")
+		secondParty = viper.GetString("corp_medical")
 	default:
+		secondParty = viper.GetString("corporation_name")
 	}
 
-	para2 := doc.AddParagraph(corpName)
+	para2 := doc.AddParagraph(secondParty)
 	para2.SetStyle(DOC_BILL_SIGN)
 	para2sign := doc.AddParagraph("（签字/盖章）")
 	para2sign.SetStyle(DOC_BILL_SIGN)
