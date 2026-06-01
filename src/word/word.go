@@ -308,6 +308,7 @@ func data(table *document.Table, pd *types.PageData) {
 					table.SetCellText(row+1, col, fmt.Sprint(calcLastDayInMonth(viper.GetInt("year"), viper.GetInt("month"))-len(pda.Data)))
 				}
 			default:
+				//mark work when type is night or temp
 				if pd.PDType == types.PD_TYPE_NIGHT || pd.PDType == types.PD_TYPE_TEMP {
 					if v, found := pda.Data[col-2]; found {
 						table.SetCellText(row+1, col, fmt.Sprint(v))
@@ -315,9 +316,10 @@ func data(table *document.Table, pd *types.PageData) {
 						table.SetCellText(row+1, col, "")
 					}
 				} else {
+					//mark everything when type is site
 					if v, found := pda.Data[col-2]; found {
 						if v == 1 {
-							table.SetCellText(row+1, col, "")
+							table.SetCellText(row+1, col, "/")
 						} else {
 							table.SetCellText(row+1, col, "√")
 						}
@@ -328,18 +330,18 @@ func data(table *document.Table, pd *types.PageData) {
 			}
 		}
 	}
-	//备注区域
+	//area backup
 	table.MergeCellsHorizontal(28, 1, 34)
 	table.SetCellText(28, 1, "备注：")
 }
 
-// 签字区域
+// area sign
 func signerArea(doc *document.Document) {
 	subtitlePara := doc.AddParagraph("负责人签字：                      区域负责人签字：                   部门负责人签字：")
 	subtitlePara.SetStyle(DOC_TABLE_PAGE_SUBTITLE)
 }
 
-// 计算目标月份天数
+// calculate late day in month
 func calcLastDayInMonth(year int, month int) int {
 
 	loc, _ := time.LoadLocation("Local")

@@ -12,14 +12,14 @@ const TEMP_8_DOC_TXT = "(8小时)"
 const TEMP_12_DOC_TXT = "(12小时)"
 const TEMP_NIGHT = "夜航"
 
-const PD_TYPE_SITE = 0
-const PD_TYPE_TEMP = 1
-const PD_TYPE_NIGHT = 2
+const PD_TYPE_SITE = 0  //site
+const PD_TYPE_TEMP = 1  //temp
+const PD_TYPE_NIGHT = 2 //night
 
-const TYPE_BILL_MEDICAL = 0
-const TYPE_BILL_SCENIC = 1
+const TYPE_BILL_MEDICAL = 0 //bill type medical
+const TYPE_BILL_SCENIC = 1  //bill type scenic
 
-const LINES_PER_PAGE = 27
+const LINES_PER_PAGE = 27 //max row in one page
 
 type PageData struct {
 	Title       string
