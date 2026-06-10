@@ -26,6 +26,10 @@ func initNamePool() {
 
 	scanner := bufio.NewScanner(file)
 
+	if nil != scanner.Err() {
+		panic(scanner)
+	}
+	
 	for scanner.Scan() {
 		text := scanner.Text()
 		if len(text) == 0 {

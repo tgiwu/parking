@@ -178,7 +178,7 @@ func cellWidth(table *document.Table, row, col int) {
 		cell, err := table.GetCell(row, col)
 		if err == nil {
 			cw := cell.Properties.TableCellW
-			cw.W = "1300"
+			cw.W = "1350"
 		}
 	case TABLE_COL_INDEX_ATT_SUM:
 		//出勤
@@ -216,14 +216,14 @@ func header(table *document.Table) {
 			textFormate = document.TextFormat{
 				Bold:       false,
 				Italic:     false,
-				FontSize:   12,
+				FontSize:   11,
 				FontFamily: "宋体 (中文正文)",
 			}
 		} else {
 			textFormate = document.TextFormat{
 				Bold:       false,
 				Italic:     false,
-				FontSize:   7,
+				FontSize:   6,
 				FontFamily: "宋体 (中文正文)",
 			}
 		}
