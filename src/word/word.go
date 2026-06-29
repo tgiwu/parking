@@ -343,7 +343,7 @@ func data(table *document.Table, pd *types.PageData) {
 	}
 	//area backup
 	table.MergeCellsHorizontal(28, 1, 34)
-	table.SetCellText(28, 1, "备注：")
+	table.SetCellText(28, 1, "备注：出勤用“√”表示；休假用“\\”表示。")
 }
 
 // area sign
