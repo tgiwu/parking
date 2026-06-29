@@ -79,7 +79,8 @@ func CreateDocx(list []types.PageData) {
 		writeDocxSingle(doc, &pd)
 	}
 
-	doc.Save(path.Join(viper.GetString("output"), viper.GetString("file")))
+	fileName := fmt.Sprintf("%d年%d月停车场考勤.docx", viper.GetInt32("year"), viper.GetInt32("month"))
+	doc.Save(path.Join(viper.GetString("output"), fileName))
 
 }
 
@@ -387,7 +388,8 @@ func CreateBillDoc(billData *types.BillData) {
 		billTypeStr = typesString[billData.BillDataType]
 	}
 
-	doc.Save(path.Join(viper.GetString("output"), fmt.Sprintf("bill%s.docx", billTypeStr)))
+	fileName := fmt.Sprintf("%d年%d月停车场结算单%s.docx", viper.GetInt32("year"), viper.GetInt32("month"), billTypeStr)
+	doc.Save(path.Join(viper.GetString("output"), fileName))
 }
 
 func setUpBillStyle(doc *document.Document) {
