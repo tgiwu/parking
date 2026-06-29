@@ -7,6 +7,7 @@ import (
 	"parking/src/types"
 	"path"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -157,8 +158,17 @@ func title(doc *document.Document, pd *types.PageData) {
 
 // 副标题和区域
 func subtitle(doc *document.Document, pd *types.PageData) {
+	var corp string
+	switch {
+	case slices.Contains(viper.GetStringSlice("area_scenic"), pd.Area):
+		corp = viper.GetString("corp_scenic")
+	case slices.Contains(viper.GetStringSlice("area_medical"), pd.Area):
+		corp = viper.GetString("corp_medical")
+	default:
+		corp = viper.GetString("corporation_name")
+	}
 
-	subtitlePara := doc.AddParagraph(fmt.Sprintf("用工单位名称：%s                                   负责区域：%s", viper.GetString("corporation_name"), formatAreaIfNeed(pd.Area)))
+	subtitlePara := doc.AddParagraph(fmt.Sprintf("用工单位名称：%s                                   负责区域：%s", corp, formatAreaIfNeed(pd.Area)))
 	subtitlePara.SetStyle(DOC_TABLE_PAGE_SUBTITLE)
 }
 
@@ -319,7 +329,7 @@ func data(table *document.Table, pd *types.PageData) {
 					//mark everything when type is site
 					if v, found := pda.Data[col-2]; found {
 						if v == 1 {
-							table.SetCellText(row+1, col, "/")
+							table.SetCellText(row+1, col, "\\")
 						} else {
 							table.SetCellText(row+1, col, "√")
 						}
