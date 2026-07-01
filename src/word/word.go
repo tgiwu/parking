@@ -17,7 +17,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-var TABLE_HEADER = []string{"序", "姓名", "出勤", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "签字"}
+// var TABLE_HEADER = []string{"序", "姓名", "出勤", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "签字"}
+var TABLE_HEADER = []string{"序", "姓名", "出勤"}
 
 const DOC_TABLE_PAGE_TITLE = "DOC_TABLE_PAGE_TITLE"
 const DOC_TABLE_PAGE_SUBTITLE = "DOC_TABLE_PAGE_SUBTITLE"
@@ -41,7 +42,8 @@ const DOC_BILL_SIGN = "DOC_BILL_SIGN"
 const TABLE_COL_INDEX_NO = 0
 const TABLE_COL_INDEX_NAME = 1
 const TABLE_COL_INDEX_ATT_SUM = 2
-const TABLE_COL_INDEX_SIGN = 34
+
+var TABLE_COL_INDEX_SIGN int
 
 // 费用合计
 // var billsum = 0
@@ -54,7 +56,7 @@ func writeDocxSingle(doc *document.Document, pd *types.PageData) {
 
 	table := doc.AddTable(&document.TableConfig{
 		Rows:  29,
-		Cols:  35,
+		Cols:  TABLE_COL_INDEX_SIGN + 1,
 		Width: 15500,
 	})
 
@@ -74,6 +76,15 @@ func CreateDocx(list []types.PageData) {
 	doc.SetPageSize(document.PageSizeA4)
 	doc.SetPageOrientation(document.OrientationLandscape)
 	doc.SetPageMargins(5.56, 15, 5.56, 15)
+
+	days := calcLastDayInMonth(viper.GetInt("year"), viper.GetInt("month"))
+
+	for i := 1; i <= days; i++ {
+		TABLE_HEADER = append(TABLE_HEADER, fmt.Sprintf("%d", i))
+	}
+	TABLE_HEADER = append(TABLE_HEADER, "签字")
+
+	TABLE_COL_INDEX_SIGN = days + 3
 
 	for _, pd := range list {
 		writeDocxSingle(doc, &pd)
@@ -342,8 +353,13 @@ func data(table *document.Table, pd *types.PageData) {
 		}
 	}
 	//area backup
-	table.MergeCellsHorizontal(28, 1, 34)
-	table.SetCellText(28, 1, "备注：出勤用“√”表示；休假用“\\”表示。")
+	table.MergeCellsHorizontal(28, 1, len(TABLE_HEADER)-1)
+
+	if strings.HasSuffix(pd.Area, "L") {
+		table.SetCellText(28, 1, "备注：")
+	} else {
+		table.SetCellText(28, 1, "备注：出勤用“√”表示；休假用“\\”表示。")
+	}
 }
 
 // area sign
