@@ -627,7 +627,7 @@ func sumText(doc *document.Document, billData *types.BillData) {
 func signture(doc *document.Document, billData *types.BillData) {
 	para1 := doc.AddParagraph(viper.GetString("first_party"))
 	para1.SetStyle(DOC_BILL_SIGN)
-	para1sign := doc.AddParagraph("（签字/盖章）")
+	para1sign := doc.AddParagraph("单位负责人（签字/盖章）")
 	para1sign.SetStyle(DOC_BILL_SIGN)
 
 	secondParty := ""
@@ -642,7 +642,7 @@ func signture(doc *document.Document, billData *types.BillData) {
 
 	para2 := doc.AddParagraph(secondParty)
 	para2.SetStyle(DOC_BILL_SIGN)
-	para2sign := doc.AddParagraph("（签字/盖章）")
+	para2sign := doc.AddParagraph("单位负责人（签字/盖章）")
 	para2sign.SetStyle(DOC_BILL_SIGN)
 }
 
