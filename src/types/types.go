@@ -41,15 +41,6 @@ type FixedData struct {
 	Area    string
 }
 
-type TempSumData struct {
-	No      int
-	Date    int
-	Temp_4  int
-	Temp_8  int
-	Temp_12 int
-	Area    string
-}
-
 type BillData struct {
 	BillDataType int //0:medical; 1 scenic
 	Year         int //bill year
@@ -74,4 +65,33 @@ type BillData struct {
 type ParagraphSimple struct {
 	Text  string
 	Style string
+}
+
+// TempStaff 临勤人员信息
+type TempStaff struct {
+	No     int
+	Name   string
+	IdNo   string
+	Mobile string
+	Area   string
+}
+
+// TempAttendance 临勤考勤信息
+type TempAttendance struct {
+	No       int      //序号
+	Date     int      //日期
+	NameList string   //姓名列表
+	Names    []string //姓名列表
+	Kind     int      //工时类型 0:4小时 1:8小时 2:12小时
+	Count    int      //数量
+	Area     string   //区域
+}
+
+type TempSumData struct {
+	No      int
+	Date    int
+	Temp_4  int
+	Temp_8  int
+	Temp_12 int
+	Area    string
 }

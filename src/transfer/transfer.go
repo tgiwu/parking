@@ -288,7 +288,20 @@ func splitToPage(area string, att8List, att12List, att4List []types.PDAttendance
 	return pdl
 }
 
-func CreateBillData(fixedMap map[string][]types.FixedData, tempMap map[string][]types.TempSumData) map[int]types.BillData {
+func CreateBillDataV2(fixedMap map[string][]types.FixedData, tempAttMap map[string][]types.TempAttendance) map[int]types.BillData {
+		contractStart := viper.GetString("contract_start")
+	contractEnd := viper.GetString("contract_end")
+	contractStartTime, err := time.ParseInLocation(time.DateOnly, contractStart, time.Local)
+	if err != nil {
+		panic(err)
+	}
+	contractEndTime, _ := time.ParseInLocation(time.DateOnly, contractEnd, time.Local)
+
+	billTypeDataMap := make(map[int]types.BillData, 0)
+
+}
+
+func CreateBillData(fixedMap map[string][]types.FixedData, tempMap map[string][]types.TempSumData, tempAttMap map[string][]types.TempAttendance) map[int]types.BillData {
 
 	contractStart := viper.GetString("contract_start")
 	contractEnd := viper.GetString("contract_end")

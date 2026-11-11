@@ -30,7 +30,7 @@ var (
 
 			fmt.Println("input  \n", viper.GetString("input"))
 
-			fixedMap, tempMap, err := read.ReadData(viper.GetString("input"))
+			fixedMap, tempMap, tempAttMap, err := read.ReadData(viper.GetString("input"))
 
 			if err != nil {
 				panic(err)
@@ -38,8 +38,9 @@ var (
 
 			fmt.Printf("fixed ：%+v\n", fixedMap)
 			fmt.Printf("temp : %+v\n", tempMap)
+			fmt.Printf("temp attendance : %+v\n", tempAttMap)
 
-			billDataMap := transfer.CreateBillData(fixedMap, tempMap)
+			billDataMap := transfer.CreateBillData(fixedMap, tempMap, tempAttMap)
 
 			word.CreateBillDocMulti(&billDataMap)
 
@@ -89,7 +90,7 @@ func init() {
 	viper.SetDefault("contract_start", "2026-03-01")
 	viper.SetDefault("contract_end", "2026-12-31")
 	viper.SetDefault("sheet_type_map", map[string]string{"中医院": "0", "大医院": "0", "中医院L": "0", "大医院L": "0",
-		"慕田峪": "1", "夜航L": "1", "青龙峡L": "1", "慕田峪L": "1", "雁栖湖L": "1"})
+		"慕田峪": "1", "夜航L": "1", "青龙峡L": "1", "慕田峪L": "1", "雁栖湖L": "1", "Yan": "1", "Mu": "1", "Qing": "1", "Ye": "1"})
 	viper.SetDefault("type_strings", []string{"(医疗类)", "(景区类)"})
 	viper.SetDefault("corp_medical", "有限公司")
 	viper.SetDefault("corp_scenic", "有限公司")
