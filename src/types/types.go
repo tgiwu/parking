@@ -21,6 +21,16 @@ const TYPE_BILL_SCENIC = 1  //bill type scenic
 
 const LINES_PER_PAGE = 27 //max row in one page
 
+const (
+	ATTENDANCE_TEMP_TYPE_1H  = 1
+	ATTENDANCE_TEMP_TYPE_2H  = 2
+	ATTENDANCE_TEMP_TYPE_4H  = 4
+	ATTENDANCE_TEMP_TYPE_6H  = 6
+	ATTENDANCE_TEMP_TYPE_8H  = 8
+	ATTENDANCE_TEMP_TYPE_10H = 10
+	ATTENDANCE_TEMP_TYPE_12H = 12
+)
+
 type PageData struct {
 	Title       string
 	Area        string
@@ -54,9 +64,13 @@ type BillData struct {
 	ContractEndMonth int //contract end month
 	ContractEndDay   int //contract end day
 
-	TempBill8Data  map[string]int //temp 8 map area to sum
-	TempBill12Data map[string]int //temp 12 map area to sum
+	TempBill1Data  map[string]int //temp 1 map area to sum
+	TempBill2Data  map[string]int //temp 2 map area to sum
 	TempBill4Data  map[string]int //temp 4 map area to sum
+	TempBill6Data  map[string]int //temp 6 map area to sum
+	TempBill8Data  map[string]int //temp 8 map area to sum
+	TempBill10Data map[string]int //temp 10 map area to sum
+	TempBill12Data map[string]int //temp 12 map area to sum
 	FixedBillData  map[string]int //fixed map area to sum
 
 	BillSum int //bill cash
@@ -82,7 +96,7 @@ type TempAttendance struct {
 	Date     int      //日期
 	NameList string   //姓名列表
 	Names    []string //姓名列表
-	Kind     int      //工时类型 0:4小时 1:8小时 2:12小时
+	Kind     int      //工时类型 1:1小时；2:2小时；4:4小时；6:6小时；8:8小时；10：10小时；12:12小时
 	Count    int      //数量
 	Area     string   //区域
 }

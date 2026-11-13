@@ -54,16 +54,16 @@ func ReadData(path string) (map[string][]types.FixedData, map[string][]types.Tem
 
 	go handleChan(&wg, count)
 	fixedAreas := viper.GetStringSlice("fixed_area")
-	tempAreas := viper.GetStringSlice("temp_area")
+	// tempAreas := viper.GetStringSlice("temp_area")
 	tempAttendanceAreas := viper.GetStringSlice("temp_attendance_sheet")
 
 	for _, sheet := range file.Sheets {
 		if slices.Index(fixedAreas, sheet.Name) != -1 {
 			go readFixed(sheet)
-		} else if slices.Index(tempAreas, sheet.Name) != -1 {
-			go readTemp(sheet)
 		} else if slices.Index(tempAttendanceAreas, sheet.Name) != -1 {
 			go readTempWithStaffName(sheet)
+		// } else if slices.Index(tempAreas, sheet.Name) != -1 {
+		// 	go readTemp(sheet)
 		} else {
 			fmt.Printf("---ignore sheet named %s \n", sheet.Name)
 		}
@@ -92,7 +92,7 @@ func readFixed(sheet *xlsx.Sheet) {
 			continue
 		}
 
-		fixed := types.FixedData{} 
+		fixed := types.FixedData{}
 		visitRowFixed(row, &headerMap, &fixed)
 		if len(fixed.Name) != 0 {
 			fixed.Area = sheet.Name
@@ -298,7 +298,7 @@ func handleTempAtt(tempAtt types.TempAttendance) {
 		log.Panicf("read tempAtt panic Area:%s, No:%d, NameList:%s, Count:%d", tempAtt.Area, tempAtt.No, tempAtt.NameList, tempAtt.Count)
 	}
 
-		if list, found := tempAttMap[tempAtt.Area]; found {
+	if list, found := tempAttMap[tempAtt.Area]; found {
 		list = append(list, tempAtt)
 		tempAttMap[tempAtt.Area] = list
 	} else {

@@ -29,7 +29,7 @@ func initNamePool() {
 	if nil != scanner.Err() {
 		panic(scanner)
 	}
-	
+
 	for scanner.Scan() {
 		text := scanner.Text()
 		if len(text) == 0 {
@@ -289,7 +289,7 @@ func splitToPage(area string, att8List, att12List, att4List []types.PDAttendance
 }
 
 func CreateBillDataV2(fixedMap map[string][]types.FixedData, tempAttMap map[string][]types.TempAttendance) map[int]types.BillData {
-		contractStart := viper.GetString("contract_start")
+	contractStart := viper.GetString("contract_start")
 	contractEnd := viper.GetString("contract_end")
 	contractStartTime, err := time.ParseInLocation(time.DateOnly, contractStart, time.Local)
 	if err != nil {
@@ -299,6 +299,109 @@ func CreateBillDataV2(fixedMap map[string][]types.FixedData, tempAttMap map[stri
 
 	billTypeDataMap := make(map[int]types.BillData, 0)
 
+	billTypeMap := viper.GetStringMapString("sheet_type_map")
+
+	for key, list := range fixedMap {
+
+		//skip illegal type;
+		if i, found := billTypeMap[key]; found || len(list) > 0 {
+			t, err := strconv.Atoi(i)
+			if err != nil {
+				fmt.Printf("illegal type %v; sheet %s, con not transfer to int \n", i, key)
+				continue
+			}
+
+			if _, found := billTypeDataMap[t]; !found {
+				billTypeDataMap[t] = types.BillData{BillDataType: t, Year: viper.GetInt("year"),
+					Month:              viper.GetInt("month"),
+					ContractStartYear:  contractStartTime.Year(),
+					ContractStartMonth: int(contractStartTime.Month()),
+					ContractStartDay:   contractStartTime.Day(),
+					ContractEndYear:    contractEndTime.Year(),
+					ContractEndMonth:   int(contractEndTime.Month()),
+					ContractEndDay:     contractEndTime.Day(),
+					FixedBillData:      make(map[string]int),
+					TempBill1Data:      make(map[string]int),
+					TempBill2Data:      make(map[string]int),
+					TempBill4Data:      make(map[string]int),
+					TempBill6Data:      make(map[string]int),
+					TempBill8Data:      make(map[string]int),
+					TempBill10Data:     make(map[string]int),
+					TempBill12Data:     make(map[string]int)}
+			}
+
+			billTypeDataMap[t].FixedBillData[key] = len(list)
+		}
+	}
+
+	for area, list := range tempAttMap {
+		if i, found := billTypeMap[area]; found {
+			t, err := strconv.Atoi(i)
+			if err != nil {
+				fmt.Printf("illegal type %v; sheet %s, con not transfer to int \n", i, area)
+				continue
+			}
+
+			if _, found := billTypeDataMap[t]; !found {
+				billTypeDataMap[t] = types.BillData{BillDataType: t, Year: viper.GetInt("year"),
+					Month:              viper.GetInt("month"),
+					ContractStartYear:  contractStartTime.Year(),
+					ContractStartMonth: int(contractStartTime.Month()),
+					ContractStartDay:   contractStartTime.Day(),
+					ContractEndYear:    contractEndTime.Year(),
+					ContractEndMonth:   int(contractEndTime.Month()),
+					ContractEndDay:     contractEndTime.Day(),
+					FixedBillData:      make(map[string]int),
+					TempBill1Data:      make(map[string]int),
+					TempBill2Data:      make(map[string]int),
+					TempBill4Data:      make(map[string]int),
+					TempBill6Data:      make(map[string]int),
+					TempBill8Data:      make(map[string]int),
+					TempBill10Data:     make(map[string]int),
+					TempBill12Data:     make(map[string]int),
+				}
+			}
+		}
+
+		areamap := make(map[string]bool)
+		for _, attendanceDay := range list {
+			areamap[attendanceDay.Area] = true
+			t, _ := strconv.Atoi(billTypeMap[attendanceDay.Area])
+			switch attendanceDay.Kind {
+			case types.ATTENDANCE_TEMP_TYPE_1H:
+				billTypeDataMap[t].TempBill1Data[attendanceDay.Area] += attendanceDay.Count
+			case types.ATTENDANCE_TEMP_TYPE_2H:
+				billTypeDataMap[t].TempBill2Data[attendanceDay.Area] += attendanceDay.Count
+			case types.ATTENDANCE_TEMP_TYPE_4H:
+				billTypeDataMap[t].TempBill4Data[attendanceDay.Area] += attendanceDay.Count
+			case types.ATTENDANCE_TEMP_TYPE_6H:
+				billTypeDataMap[t].TempBill6Data[attendanceDay.Area] += attendanceDay.Count
+			case types.ATTENDANCE_TEMP_TYPE_8H:
+				billTypeDataMap[t].TempBill8Data[attendanceDay.Area] += attendanceDay.Count
+			case types.ATTENDANCE_TEMP_TYPE_10H:
+				billTypeDataMap[t].TempBill10Data[attendanceDay.Area] += attendanceDay.Count
+			case types.ATTENDANCE_TEMP_TYPE_12H:
+				billTypeDataMap[t].TempBill12Data[attendanceDay.Area] += attendanceDay.Count
+			default:
+				fmt.Printf("illegal kind %d for area %s, date %d\n", attendanceDay.Kind, attendanceDay.Area, attendanceDay.Date)
+			}
+		}
+
+		//全部转为8小时工时；对账单中只显示8小时及12小时工时，其他工时类型不显示
+		for area := range areamap {
+			t, _ := strconv.Atoi(billTypeMap[area])
+			workTimeSum := billTypeDataMap[t].TempBill1Data[area]*1 + billTypeDataMap[t].TempBill2Data[area]*2 + billTypeDataMap[t].TempBill4Data[area]*4 + billTypeDataMap[t].TempBill6Data[area]*6 + billTypeDataMap[t].TempBill10Data[area]*10
+			areamap[area] = true
+			if workTimeSum%8 == 0 {
+				billTypeDataMap[t].TempBill8Data[area] += workTimeSum / 8
+			} else {
+				billTypeDataMap[t].TempBill8Data[area] += (workTimeSum + viper.GetInt("last_time_rest")) / 8
+				viper.Set("last_time_rest", (workTimeSum+viper.GetInt("last_time_rest"))%8)
+			}
+		}
+	}
+
+	return billTypeDataMap
 }
 
 func CreateBillData(fixedMap map[string][]types.FixedData, tempMap map[string][]types.TempSumData, tempAttMap map[string][]types.TempAttendance) map[int]types.BillData {

@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"parking/src/conf"
 	"parking/src/read"
@@ -40,7 +41,9 @@ var (
 			fmt.Printf("temp : %+v\n", tempMap)
 			fmt.Printf("temp attendance : %+v\n", tempAttMap)
 
-			billDataMap := transfer.CreateBillData(fixedMap, tempMap, tempAttMap)
+			// billDataMap := transfer.CreateBillData(fixedMap, tempMap, tempAttMap)
+			billDataMap := transfer.CreateBillDataV2(fixedMap, tempAttMap)
+			log.Printf("bill data map : %+v\n  rest: %d", billDataMap, viper.GetInt("last_time_rest"))
 
 			word.CreateBillDocMulti(&billDataMap)
 

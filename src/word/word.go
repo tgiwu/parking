@@ -3,7 +3,7 @@ package word
 import (
 	"errors"
 	"fmt"
-	"math/rand"
+	"log"
 	"parking/src/types"
 	"path"
 	"regexp"
@@ -549,16 +549,16 @@ func tempData(doc *document.Document, billData *types.BillData) {
 	tempAreas := viper.GetStringSlice("temp_area")
 
 	for _, area := range tempAreas {
-		temp4Count := 0
-		if v, found := billData.TempBill4Data[area]; found {
-			temp4Count = v
-		}
+		// temp4Count := 0
+		// if v, found := billData.TempBill4Data[area]; found {
+		// 	temp4Count = v
+		// }
 
-		if v, found := billData.TempBill8Data[area]; found && (v > 0 || temp4Count > 0) {
-			count := v + temp4Count/2
-			if temp4Count%2 != 0 && rand.Int()%2 != 0 {
-				count++
-			}
+		if v, found := billData.TempBill8Data[area]; found && (v > 0) {
+			count := v
+			// if temp4Count%2 != 0 && rand.Int()%2 != 0 {
+			// 	count++
+			// }
 			if count > 0 {
 				sum := count * viper.GetInt("temp_8_day")
 				paraList = append(paraList, types.ParagraphSimple{
@@ -709,6 +709,17 @@ func digitalToChar(money int) string {
 
 // 固定岗和临勤有重叠区域，为区别临勤岗名称后加L，写入文档时去掉
 func formatAreaIfNeed(area string) string {
-	s, _ := strings.CutSuffix(area, "L")
-	return s
+	fixedAreas := viper.GetStringSlice("fixed_area")
+	if slices.Contains(fixedAreas, area) {
+		return area
+	}
+
+	targetAreas := viper.GetStringSlice("target_area")
+	tempAreas := viper.GetStringSlice("temp_area")
+	index := slices.Index(tempAreas, area)
+	if index == -1 {
+		log.Panicf("known area %s", area)
+	}
+	return targetAreas[index%len(targetAreas)]
+
 }
