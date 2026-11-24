@@ -109,3 +109,7 @@ type TempSumData struct {
 	Temp_12 int
 	Area    string
 }
+
+type TableConfig struct {
+	
+}

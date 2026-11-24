@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/ZeroHawkeye/wordZero/pkg/document"
-	"github.com/ZeroHawkeye/wordZero/pkg/style"
 	"github.com/spf13/viper"
 )
 
@@ -39,9 +38,17 @@ const DOC_BILL_CONTENT = "DOC_BILL_CONTENT"
 const DOC_BILL_SITE_TITLE = "DOC_BILL_SITE_TITLE"
 const DOC_BILL_SIGN = "DOC_BILL_SIGN"
 
-const TABLE_COL_INDEX_NO = 0
-const TABLE_COL_INDEX_NAME = 1
-const TABLE_COL_INDEX_ATT_SUM = 2
+const (
+	TABLE_COL_INDEX_NO = iota
+	TABLE_COL_INDEX_NAME
+	TABLE_COL_INDEX_ATT_SUM
+)
+
+type TableType int
+const (
+	TABLE_TYPE_CHECKIN_FIXED = iota
+	TABLE_TYPE_CHECKIN_TEMP
+)
 
 var TABLE_COL_INDEX_SIGN int
 
@@ -49,26 +56,45 @@ var TABLE_COL_INDEX_SIGN int
 // var billsum = 0
 
 // 编写单页
-func writeDocxSingle(doc *document.Document, pd *types.PageData) {
+func createFixedDocxSingle(doc *document.Document, pd *types.PageData) {
 
-	title(doc, pd)
-	subtitle(doc, pd)
+	fixedTitle(doc, pd)
+	fixedSubtitle(doc, pd)
 
-	table := doc.AddTable(&document.TableConfig{
+	table, _ := doc.AddTable(&document.TableConfig{
 		Rows:  29,
 		Cols:  TABLE_COL_INDEX_SIGN + 1,
 		Width: 15500,
 	})
 
-	header(table)
-	data(table, pd)
+	fixedHeader(table)
+	FixedData(table, pd)
 
 	signerArea(doc)
 
 }
 
-// 文档创建方法
-func CreateDocx(list []types.PageData) {
+func CreateTempDocx(list []types.PageData) {
+	document.SetGlobalLevel(document.LogLevelError)
+
+	doc := document.New()
+	setUpStyle(doc)
+	doc.SetPageSize(document.PageSizeA4)
+	doc.SetPageOrientation(document.OrientationLandscape)
+	doc.SetPageMargins(5.56, 15, 5.56, 15)
+
+	days := calcLastDayInMonth(viper.GetInt("year"), viper.GetInt("month"))
+
+	for i := 1; i <= days; i++ {
+		TABLE_HEADER = append(TABLE_HEADER, fmt.Sprintf("%d", i))
+	}
+	TABLE_HEADER = append(TABLE_HEADER, "签字")
+
+	TABLE_COL_INDEX_SIGN = days + 3
+}
+
+// 创建固定岗考勤表
+func CreateFixedDocx(list []types.PageData) {
 	document.SetGlobalLevel(document.LogLevelError)
 
 	doc := document.New()
@@ -87,295 +113,12 @@ func CreateDocx(list []types.PageData) {
 	TABLE_COL_INDEX_SIGN = days + 3
 
 	for _, pd := range list {
-		writeDocxSingle(doc, &pd)
+		createFixedDocxSingle(doc, &pd)
 	}
 
 	fileName := fmt.Sprintf("%d年%d月停车场考勤.docx", viper.GetInt32("year"), viper.GetInt32("month"))
 	doc.Save(path.Join(viper.GetString("output"), fileName))
 
-}
-
-// 预制风格
-func setUpStyle(doc *document.Document) {
-	styleManager := doc.GetStyleManager()
-	quickAPI := style.NewQuickStyleAPI(styleManager)
-
-	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-		ID:   DOC_TABLE_PAGE_TITLE,
-		Name: DOC_TABLE_PAGE_TITLE,
-		Type: style.StyleTypeParagraph,
-		ParagraphConfig: &style.QuickParagraphConfig{
-			Alignment:   "center",
-			SpaceBefore: 0, // 段前间距（缇）
-			SpaceAfter:  0, // 段后间距（缇）
-			LineSpacing: 0, // 行间距（缇）
-		},
-		RunConfig: &style.QuickRunConfig{
-			FontName:  "(中文正文)",
-			FontSize:  14,
-			FontColor: "000000",
-			Bold:      false,
-		},
-	})
-
-	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-		ID:   DOC_TABLE_PAGE_SUBTITLE,
-		Name: DOC_TABLE_PAGE_SUBTITLE,
-		Type: style.StyleTypeParagraph,
-		ParagraphConfig: &style.QuickParagraphConfig{
-			Alignment:   "left",
-			SpaceBefore: 0, // 段前间距（缇）
-			SpaceAfter:  0, // 段后间距（缇）
-			LineSpacing: 0, // 行间距（缇）
-		},
-		RunConfig: &style.QuickRunConfig{
-			FontName:  "宋体(中文正文)",
-			FontSize:  14,
-			FontColor: "000000",
-			Bold:      false,
-		},
-	})
-
-	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-		ID:   DOC_PAGE_SIGN,
-		Name: DOC_PAGE_SIGN,
-		Type: style.StyleTypeParagraph,
-		ParagraphConfig: &style.QuickParagraphConfig{
-			Alignment:   "left",
-			SpaceBefore: 0, // 段前间距（缇）
-			SpaceAfter:  0, // 段后间距（缇）
-			LineSpacing: 0, // 行间距（缇）
-		},
-		RunConfig: &style.QuickRunConfig{
-			FontName:  "宋体(中文正文)",
-			FontSize:  14,
-			FontColor: "000000",
-			Bold:      false,
-		},
-	})
-
-}
-
-// 表格标题
-func title(doc *document.Document, pd *types.PageData) {
-	var t string
-	if pd.PDType == types.PD_TYPE_NIGHT || pd.PDType == types.PD_TYPE_TEMP {
-		t = "临勤"
-	} else {
-		t = "固定岗"
-	}
-	titlePara := doc.AddParagraph(fmt.Sprintf("停车场人员%d年度%d月%s出勤统计表", viper.GetInt("year"), viper.GetInt("month"), t))
-	titlePara.SetStyle(DOC_TABLE_PAGE_TITLE)
-}
-
-// 副标题和区域
-func subtitle(doc *document.Document, pd *types.PageData) {
-	var corp string
-	switch {
-	case slices.Contains(viper.GetStringSlice("area_scenic"), pd.Area):
-		corp = viper.GetString("corp_scenic")
-	case slices.Contains(viper.GetStringSlice("area_medical"), pd.Area):
-		corp = viper.GetString("corp_medical")
-	default:
-		corp = viper.GetString("corporation_name")
-	}
-
-	subtitlePara := doc.AddParagraph(fmt.Sprintf("用工单位名称：%s                                   负责区域：%s", corp, formatAreaIfNeed(pd.Area)))
-	subtitlePara.SetStyle(DOC_TABLE_PAGE_SUBTITLE)
-}
-
-// 设置单元格宽度
-func cellWidth(table *document.Table, row, col int) {
-
-	switch col {
-	case TABLE_COL_INDEX_NO:
-		//序
-		cell, err := table.GetCell(row, col)
-		if err == nil {
-			cw := cell.Properties.TableCellW
-			cw.W = "250"
-		}
-	case TABLE_COL_INDEX_NAME:
-		//姓名
-		cell, err := table.GetCell(row, col)
-		if err == nil {
-			cw := cell.Properties.TableCellW
-			cw.W = "1350"
-		}
-	case TABLE_COL_INDEX_ATT_SUM:
-		//出勤
-		cell, err := table.GetCell(row, col)
-		if err == nil {
-			cw := cell.Properties.TableCellW
-			cw.W = "900"
-		}
-	case TABLE_COL_INDEX_SIGN:
-		//签字
-		cell, err := table.GetCell(row, col)
-		if err == nil {
-			cw := cell.Properties.TableCellW
-			cw.W = "1300"
-		}
-	default:
-		//日期
-		cell, err := table.GetCell(row, col)
-		if err == nil {
-			cw := cell.Properties.TableCellW
-			cw.W = "100"
-		}
-	}
-
-}
-
-// 表头
-func header(table *document.Table) {
-	for i := range table.GetColumnCount() {
-		cellWidth(table, 0, i)
-		var textFormate document.TextFormat
-
-		if i == TABLE_COL_INDEX_NO || i == TABLE_COL_INDEX_NAME ||
-			i == TABLE_COL_INDEX_ATT_SUM || i == TABLE_COL_INDEX_SIGN {
-			textFormate = document.TextFormat{
-				Bold:       false,
-				Italic:     false,
-				FontSize:   11,
-				FontFamily: "宋体 (中文正文)",
-			}
-		} else {
-			textFormate = document.TextFormat{
-				Bold:       false,
-				Italic:     false,
-				FontSize:   6,
-				FontFamily: "宋体 (中文正文)",
-			}
-		}
-
-		cellformat, _ := table.GetCellFormat(0, i)
-		cellformat.HorizontalAlign = document.CellAlignCenter
-		cellformat.VerticalAlign = document.CellVAlignCenter
-		cellformat.TextFormat = &textFormate
-		table.SetCellFormat(0, i, cellformat)
-		table.SetCellText(0, i, TABLE_HEADER[i])
-	}
-}
-
-// 填充数据
-func data(table *document.Table, pd *types.PageData) {
-	days := calcLastDayInMonth(viper.GetInt("year"), viper.GetInt("month"))
-	for row, pda := range pd.Attendances {
-		table.SetRowHeight(row+1, &document.RowHeightConfig{Height: 16, Rule: document.RowHeightExact})
-	loop:
-		for col := range table.GetColumnCount() - 1 {
-			cellWidth(table, row, col)
-			if col-2 > days {
-				break
-			}
-			var textFormate document.TextFormat
-
-			switch col {
-			case TABLE_COL_INDEX_NO:
-				textFormate = document.TextFormat{
-					Bold:       false,
-					Italic:     false,
-					FontSize:   7,
-					FontFamily: "Calibri (西文正文)",
-				}
-			case TABLE_COL_INDEX_NAME:
-				textFormate = document.TextFormat{
-					Bold:       false,
-					Italic:     false,
-					FontSize:   12,
-					FontFamily: "宋体 (中文正文)",
-				}
-			case TABLE_COL_INDEX_ATT_SUM:
-				textFormate = document.TextFormat{
-					Bold:       false,
-					Italic:     false,
-					FontSize:   9,
-					FontFamily: "Calibri (西文正文)",
-				}
-			case TABLE_COL_INDEX_SIGN:
-				textFormate = document.TextFormat{
-					Bold:       false,
-					Italic:     false,
-					FontSize:   9,
-					FontFamily: "宋体 (中文正文)",
-				}
-			default:
-				textFormate = document.TextFormat{
-					Bold:       false,
-					Italic:     false,
-					FontSize:   8,
-					FontFamily: "Arial",
-				}
-			}
-
-			cellformat, _ := table.GetCellFormat(row+1, col)
-			cellformat.HorizontalAlign = document.CellAlignCenter
-			cellformat.VerticalAlign = document.CellVAlignCenter
-			cellformat.TextFormat = &textFormate
-			table.SetCellFormat(row+1, col, cellformat)
-			switch col {
-			case TABLE_COL_INDEX_NO:
-				table.SetCellText(row+1, col, fmt.Sprint(pda.Id))
-			case TABLE_COL_INDEX_NAME:
-				if len(pda.Name) == 0 {
-					break loop
-				}
-				table.SetCellText(row+1, col, pda.Name)
-			case TABLE_COL_INDEX_ATT_SUM:
-				if pd.PDType == types.PD_TYPE_NIGHT || pd.PDType == types.PD_TYPE_TEMP {
-					table.SetCellText(row+1, col, fmt.Sprint(len(pda.Data)))
-				} else {
-					table.SetCellText(row+1, col, fmt.Sprint(calcLastDayInMonth(viper.GetInt("year"), viper.GetInt("month"))-len(pda.Data)))
-				}
-			default:
-				//mark work when type is night or temp
-				if pd.PDType == types.PD_TYPE_NIGHT || pd.PDType == types.PD_TYPE_TEMP {
-					if v, found := pda.Data[col-2]; found {
-						table.SetCellText(row+1, col, fmt.Sprint(v))
-					} else {
-						table.SetCellText(row+1, col, "")
-					}
-				} else {
-					//mark everything when type is site
-					if v, found := pda.Data[col-2]; found {
-						if v == 1 {
-							table.SetCellText(row+1, col, "\\")
-						} else {
-							table.SetCellText(row+1, col, "√")
-						}
-					} else {
-						table.SetCellText(row+1, col, "√")
-					}
-				}
-			}
-		}
-	}
-	//area backup
-	table.MergeCellsHorizontal(28, 1, len(TABLE_HEADER)-1)
-
-	if strings.HasSuffix(pd.Area, "L") {
-		table.SetCellText(28, 1, "备注：")
-	} else {
-		table.SetCellText(28, 1, "备注：出勤用“√”表示；休假用“\\”表示。")
-	}
-}
-
-// area sign
-func signerArea(doc *document.Document) {
-	subtitlePara := doc.AddParagraph("负责人签字：                      区域负责人签字：                   部门负责人签字：")
-	subtitlePara.SetStyle(DOC_TABLE_PAGE_SUBTITLE)
-}
-
-// calculate late day in month
-func calcLastDayInMonth(year int, month int) int {
-
-	loc, _ := time.LoadLocation("Local")
-
-	date := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, loc).AddDate(0, 1, -1)
-	day := date.Day()
-	return day
 }
 
 func CreateBillDocMulti(billDataMap *map[int]types.BillData) {
@@ -408,245 +151,18 @@ func CreateBillDoc(billData *types.BillData) {
 	doc.Save(path.Join(viper.GetString("output"), fileName))
 }
 
-func setUpBillStyle(doc *document.Document) {
-	styleManager := doc.GetStyleManager()
-	quickAPI := style.NewQuickStyleAPI(styleManager)
-	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-		ID:   DOC_BILL_TITLE,
-		Name: DOC_BILL_TITLE,
-		Type: style.StyleTypeParagraph,
-		ParagraphConfig: &style.QuickParagraphConfig{
-			Alignment:   "center",
-			SpaceBefore: 0, // 段前间距（缇）
-			SpaceAfter:  0, // 段后间距（缇）
-			LineSpacing: 0, // 行间距（缇）
-		},
-		RunConfig: &style.QuickRunConfig{
-			FontName:  "微软雅黑",
-			FontSize:  22,
-			FontColor: "000000",
-			Bold:      false,
-		},
-	})
-	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-		ID:   DOC_BILL_SUBTITLE,
-		Name: DOC_BILL_SUBTITLE,
-		Type: style.StyleTypeParagraph,
-		ParagraphConfig: &style.QuickParagraphConfig{
-			Alignment:   "center",
-			SpaceBefore: 0, // 段前间距（缇）
-			SpaceAfter:  0, // 段后间距（缇）
-			LineSpacing: 0, // 行间距（缇）
-		},
-		RunConfig: &style.QuickRunConfig{
-			FontName:  "仿宋",
-			FontSize:  18,
-			FontColor: "000000",
-			Bold:      false,
-		},
-	})
-	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-		ID:   DOC_BILL_CONTENT,
-		Name: DOC_BILL_CONTENT,
-		Type: style.StyleTypeParagraph,
-		ParagraphConfig: &style.QuickParagraphConfig{
-			Alignment:   "left",
-			SpaceBefore: 0, // 段前间距（缇）
-			SpaceAfter:  0, // 段后间距（缇）
-			LineSpacing: 0, // 行间距（缇）
-		},
-		RunConfig: &style.QuickRunConfig{
-			FontName:  "仿宋",
-			FontSize:  16,
-			FontColor: "000000",
-			Bold:      false,
-		},
-	})
-	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-		ID:   DOC_BILL_SITE_TITLE,
-		Name: DOC_BILL_SITE_TITLE,
-		Type: style.StyleTypeParagraph,
-		ParagraphConfig: &style.QuickParagraphConfig{
-			Alignment:   "left",
-			SpaceBefore: 0, // 段前间距（缇）
-			SpaceAfter:  0, // 段后间距（缇）
-			LineSpacing: 0, // 行间距（缇）
-		},
-		RunConfig: &style.QuickRunConfig{
-			FontName:  "仿宋",
-			FontSize:  16,
-			FontColor: "000000",
-			Bold:      true,
-		},
-	})
-	quickAPI.CreateQuickStyle(style.QuickStyleConfig{
-		ID:   DOC_BILL_SIGN,
-		Name: DOC_BILL_SIGN,
-		Type: style.StyleTypeParagraph,
-		ParagraphConfig: &style.QuickParagraphConfig{
-			Alignment:   "left",
-			SpaceBefore: 0, // 段前间距（缇）
-			SpaceAfter:  0, // 段后间距（缇）
-			LineSpacing: 0, // 行间距（缇）
-		},
-		RunConfig: &style.QuickRunConfig{
-			FontName:  "仿宋",
-			FontSize:  16,
-			FontColor: "000000",
-			Bold:      false,
-		},
-	})
-}
-
-func billTitle(doc *document.Document, billData *types.BillData) {
-	var billTypeStr string
-	typesString := viper.GetStringSlice("type_strings")
-	if billData.BillDataType > len(typesString) {
-		billTypeStr = ""
-	} else {
-		billTypeStr = typesString[billData.BillDataType]
-	}
-	paraTitle := doc.AddParagraph(fmt.Sprintf("停车场%s服务项目费用结算单", billTypeStr))
-	paraTitle.SetStyle(DOC_BILL_TITLE)
-	paraSubtitle := doc.AddParagraph(fmt.Sprintf("（%d年%d月）", billData.Year, billData.Month))
-	paraSubtitle.SetStyle(DOC_BILL_SUBTITLE)
-}
-
-func billDescription(doc *document.Document, billData *types.BillData) {
-	foreword := ""
-	switch billData.BillDataType {
-	case types.TYPE_BILL_MEDICAL:
-		foreword = viper.GetString("corp_medical")
-	case types.TYPE_BILL_SCENIC:
-		foreword = viper.GetString("corp_scenic")
+func tableConfig(tt TableType) types.TableConfig{
+	tableConfig := types.TableConfig{}
+	switch tt {
+	case TABLE_TYPE_CHECKIN_FIXED:
+	case TABLE_TYPE_CHECKIN_TEMP:
 	default:
-		foreword = viper.GetString("corporation_name")
+		
 	}
-	paraCorporation := doc.AddParagraph(foreword + ":")
-	paraCorporation.SetStyle(DOC_BILL_CONTENT)
-	lastDay := calcLastDayInMonth(billData.Year, billData.Month)
-	txt := fmt.Sprintf("    自%d年%d月%d日起，确认由贵公司为%s提供停车场服务工作，服务期限为%d.%d.%d-%d.%d.%d。贵公司已按合同要求完成%d年%d月各项工作，%d月份服务时间自%d月%d日至%d月%d日，共计%d天，费用明细如下：",
-		billData.ContractStartYear, billData.ContractStartMonth, billData.ContractStartDay,
-		viper.GetString("first_party"),
-		billData.ContractStartYear, billData.ContractStartMonth, billData.ContractStartDay,
-		billData.ContractEndYear, billData.ContractEndMonth, billData.ContractEndDay,
-		billData.Year, billData.Month, billData.Month, billData.Month, 1, billData.Month, lastDay, lastDay)
-	paraDescription := doc.AddParagraph(txt)
-	paraDescription.SetStyle(DOC_BILL_CONTENT)
+	return tableConfig
 }
 
-func tempData(doc *document.Document, billData *types.BillData) {
-	if len(billData.TempBill12Data) == 0 &&
-		len(billData.TempBill8Data) == 0 &&
-		len(billData.TempBill4Data) == 0 {
-		return
-	}
-	sTitle := fmt.Sprintf("    临勤岗：（8小时%d元/人/天；12小时%d元/人/天）", viper.GetInt("temp_8_day"), viper.GetInt("temp_12_day"))
-	paraTitle := doc.AddParagraph(sTitle)
-	paraTitle.SetStyle(DOC_BILL_SITE_TITLE)
-
-	paraList := []types.ParagraphSimple{}
-	tempAreas := viper.GetStringSlice("temp_area")
-
-	for _, area := range tempAreas {
-		// temp4Count := 0
-		// if v, found := billData.TempBill4Data[area]; found {
-		// 	temp4Count = v
-		// }
-
-		if v, found := billData.TempBill8Data[area]; found && (v > 0) {
-			count := v
-			// if temp4Count%2 != 0 && rand.Int()%2 != 0 {
-			// 	count++
-			// }
-			if count > 0 {
-				sum := count * viper.GetInt("temp_8_day")
-				paraList = append(paraList, types.ParagraphSimple{
-					Text: fmt.Sprintf("    %s（8小时）：%d人*%d元/人/天=%d元;",
-						formatAreaIfNeed(area), count, viper.GetInt("temp_8_day"), sum),
-					Style: DOC_BILL_CONTENT,
-				})
-				billData.BillSum += sum
-			}
-
-		}
-
-		if v, found := billData.TempBill12Data[area]; found && v > 0 {
-			sum := v * viper.GetInt("temp_12_day")
-			paraList = append(paraList, types.ParagraphSimple{
-				Text: fmt.Sprintf("    %s（12小时）：%d人*%d元/人/天=%d元;",
-					formatAreaIfNeed(area), v, viper.GetInt("temp_12_day"), sum),
-				Style: DOC_BILL_CONTENT,
-			})
-			billData.BillSum += sum
-		}
-	}
-
-	if len(paraList) > 0 {
-		for _, line := range paraList {
-			para := doc.AddParagraph(line.Text)
-			para.SetStyle(line.Style)
-		}
-	}
-
-}
-
-func fixedData(doc *document.Document, billData *types.BillData) {
-	sTitle := fmt.Sprintf("    固定岗：（%d元/人/月）", viper.GetInt("fixed_pay"))
-	paraTitle := doc.AddParagraph(sTitle)
-	paraTitle.SetStyle(DOC_BILL_SITE_TITLE)
-
-	paraList := []types.ParagraphSimple{}
-	fixedAreas := viper.GetStringSlice("fixed_area")
-
-	for _, area := range fixedAreas {
-		if v, found := billData.FixedBillData[area]; found && v > 0 {
-			sum := v * viper.GetInt("fixed_pay")
-			paraList = append(paraList, types.ParagraphSimple{
-				Text:  fmt.Sprintf("    %s：%d元/人/月*%d人=%d元；", area, viper.GetInt("fixed_pay"), v, sum),
-				Style: DOC_BILL_CONTENT,
-			})
-			billData.BillSum += sum
-		}
-	}
-
-	if len(paraList) > 0 {
-		for _, line := range paraList {
-			para := doc.AddParagraph(line.Text)
-			para.SetStyle(line.Style)
-		}
-	}
-}
-
-func sumText(doc *document.Document, billData *types.BillData) {
-
-	para := doc.AddParagraph(fmt.Sprintf("费用合计金额为：%d元（%s）", billData.BillSum, digitalToChar(billData.BillSum)))
-	para.SetStyle(DOC_BILL_CONTENT)
-}
-
-func signture(doc *document.Document, billData *types.BillData) {
-	para1 := doc.AddParagraph(viper.GetString("first_party"))
-	para1.SetStyle(DOC_BILL_SIGN)
-	para1sign := doc.AddParagraph("单位负责人（签字/盖章）")
-	para1sign.SetStyle(DOC_BILL_SIGN)
-
-	secondParty := ""
-	switch billData.BillDataType {
-	case types.TYPE_BILL_SCENIC:
-		secondParty = viper.GetString("corp_scenic")
-	case types.TYPE_BILL_MEDICAL:
-		secondParty = viper.GetString("corp_medical")
-	default:
-		secondParty = viper.GetString("corporation_name")
-	}
-
-	para2 := doc.AddParagraph(secondParty)
-	para2.SetStyle(DOC_BILL_SIGN)
-	para2sign := doc.AddParagraph("单位负责人（签字/盖章）")
-	para2sign.SetStyle(DOC_BILL_SIGN)
-}
-
-func digitalToChar(money int) string {
+func DigitalToChar(money int) string {
 	var sliceUnit = []string{"仟", "佰", "拾", "亿", "仟", "佰", "拾", "万", "仟", "佰", "拾", "元", "角", "分"}
 	var upperDigitUnit = map[string]string{
 		"0": "零",
@@ -707,6 +223,16 @@ func digitalToChar(money int) string {
 	return str
 }
 
+// calculate late day in month
+func calcLastDayInMonth(year int, month int) int {
+
+	loc, _ := time.LoadLocation("Local")
+
+	date := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, loc).AddDate(0, 1, -1)
+	day := date.Day()
+	return day
+}
+
 // 固定岗和临勤有重叠区域，为区别临勤岗名称后加L，写入文档时去掉
 func formatAreaIfNeed(area string) string {
 	fixedAreas := viper.GetStringSlice("fixed_area")
@@ -721,5 +247,27 @@ func formatAreaIfNeed(area string) string {
 		log.Panicf("known area %s", area)
 	}
 	return targetAreas[index%len(targetAreas)]
+
+}
+
+func CreateCheckinDocx(tempAttendanceMap *map[string][]types.TempAttendance) {
+	for area, tempAttendanceList := range *tempAttendanceMap {
+		CreateCheckinDocxSingle(&tempAttendanceList, area)
+	}
+}
+
+func CreateCheckinDocxSingle(tempAttendanceList *[]types.TempAttendance, area string) {
+	doc := document.New()
+	setUpCheckinDocStyle(doc)
+
+	doc.SetPageSize(document.PageSizeA4)
+	doc.SetPageOrientation(document.OrientationLandscape)
+	signPages(doc, tempAttendanceList, area)
+
+	infoPages(doc, tempAttendanceList, area)
+
+	checkInPages(doc, tempAttendanceList, area)
+
+	doc.Save(path.Join(viper.GetString("output"), fmt.Sprintf("临勤（外雇）人员增补签到表_%s.docx", area)))
 
 }

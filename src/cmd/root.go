@@ -9,7 +9,6 @@ import (
 	"parking/src/read"
 	"parking/src/transfer"
 	"parking/src/word"
-	"slices"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -55,9 +54,15 @@ var (
 			// fmt.Printf("temp page list : %+v\n", tempPDList)
 			fmt.Printf("-------------------------------------")
 
-			list := slices.Concat(fixedPDList, tempPDList)
+			// list := slices.Concat(fixedPDList, tempPDList)
 			// fmt.Printf("list : %+v", list)
-			word.CreateDocx(list)
+			word.CreateFixedDocx(fixedPDList)
+
+			if len(tempPDList) > 0 {
+				word.CreateTempDocx(tempPDList)
+			} else {
+				log.Println("temp pd list is empty, ignore!")
+			}
 
 		},
 	}
